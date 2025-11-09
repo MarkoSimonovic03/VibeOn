@@ -6,9 +6,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 @SpringBootApplication
 public class VibeOnApplication {
 
-	public static void main(String[] args) {
-		System.out.println("Mare");
-		//		SpringApplication.run(VibeOnApplication.class, args);
-	}
-
+    public static void main(String[] args) {
+        SpringApplication.run(VibeOnApplication.class, args);
+    }
 }
