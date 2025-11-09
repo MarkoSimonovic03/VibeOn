@@ -11,11 +11,17 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "roles")
-public class Role {
+@Table(name = "follows")
+public class Follow {
     @Id
-    @GeneratedValue(strategy =  GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String name;
+    @ManyToOne()
+    @JoinColumn(name = "follower_id")
+    private User follower;
+
+    @ManyToOne()
+    @JoinColumn(name = "followee_id")
+    private User followee;
 }

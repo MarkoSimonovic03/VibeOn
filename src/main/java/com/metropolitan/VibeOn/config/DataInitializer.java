@@ -21,7 +21,7 @@ public class DataInitializer {
             RoleRepository roleRepository,
             UserRepository userRepository
     ) {
-        return args -> {
+        return args -> {/*
             // 1. ROLE INIT
             Role adminRole = roleRepository.findByName("ROLE_ADMIN")
                     .orElseGet(() -> roleRepository.save(new Role(null, "ROLE_ADMIN")));
@@ -39,7 +39,7 @@ public class DataInitializer {
 
                 admin.setRoles(Set.of(adminRole, userRole));
                 userRepository.save(admin);
-            }
+            }*/
         };
     }
 }

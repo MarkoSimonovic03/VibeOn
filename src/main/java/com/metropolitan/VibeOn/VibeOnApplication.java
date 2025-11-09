@@ -7,8 +7,6 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 public class VibeOnApplication {
 
     public static void main(String[] args) {
-        //proba push
-		//aaaaaaa
         SpringApplication.run(VibeOnApplication.class, args);
     }
 }
