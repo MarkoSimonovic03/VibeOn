@@ -16,33 +16,34 @@ import java.util.Set;
 @Entity
 @Table(name = "users")
 public class User {
+    //TODO fix @Column annotation
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, unique = true)
+    @Column(unique = true)
     private String username;
 
-    @Column(nullable = false)
+    @Column()
     private String name;
 
-    @Column(nullable = false)
+    @Column()
     private String lastName;
 
-    @Column(name = "created_at", nullable = false)
+    @Column(name = "created_at")
     private LocalDate createdAt;
 
-    @Column(nullable = false, unique = true)
+    @Column( unique = true)
     private String email;
 
-    @Column(nullable = false)
+    @Column()
     private String password;
 
-    @Column(nullable = false)
+    @Column()
     private LocalDate birthDate;
 
-    @Column(nullable = false)
-    private boolean sex;
+    @Column()
+    private boolean gender;
 
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(name = "users_roles",

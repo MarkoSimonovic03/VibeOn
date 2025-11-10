@@ -21,7 +21,7 @@ public class DataInitializer {
             RoleRepository roleRepository,
             UserRepository userRepository
     ) {
-        return args -> {/*
+        return args -> {
             // 1. ROLE INIT
             Role adminRole = roleRepository.findByName("ROLE_ADMIN")
                     .orElseGet(() -> roleRepository.save(new Role(null, "ROLE_ADMIN")));
@@ -30,16 +30,16 @@ public class DataInitializer {
                     .orElseGet(() -> roleRepository.save(new Role(null, "ROLE_USER")));
 
             // 2. ADMIN USER
-            if (userRepository.findByUsername("admin").isEmpty()) {
-                User admin = new User();
-                admin.setName("admin");
-                admin.setUsername("admin");
-                admin.setEmail("admin@gmail.com");
-                admin.setPassword(passwordEncoder.encode("admin"));
-
-                admin.setRoles(Set.of(adminRole, userRole));
-                userRepository.save(admin);
-            }*/
+//            if (userRepository.findByUsername("admin").isEmpty()) {
+//                User admin = new User();
+//                admin.setName("admin");
+//                admin.setUsername("admin");
+//                admin.setEmail("admin@gmail.com");
+//                admin.setPassword(passwordEncoder.encode("admin"));
+//
+//                admin.setRoles(Set.of(adminRole, userRole));
+//                userRepository.save(admin);
+//            }
         };
     }
 }
