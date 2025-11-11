@@ -75,6 +75,16 @@ public class PostController {
         }
     }
 
+    @GetMapping("/followeePosts")
+    public ResponseEntity<?> getAllPostsByFollowedUser() {
+        try {
+            return ResponseEntity.ok().body(postService.getAllPostsByFolloweeUser());
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("An unexpected error occurred: " + e.getMessage());
+        }
+    }
+
+
     @PatchMapping("/{id}")
     public ResponseEntity<?> updatePost(@PathVariable Long id, @RequestBody Map<String,String> newDescription) {
         try {

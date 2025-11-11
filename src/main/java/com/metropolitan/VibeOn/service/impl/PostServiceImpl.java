@@ -101,4 +101,9 @@ public class PostServiceImpl implements PostService {
     public List<Post> getAllPosts() {
         return postRepository.findAllByOrderByCreatedAtDesc();
     }
+
+    @Override
+    public List<Post> getAllPostsByFolloweeUser() {
+        return postRepository.findAllPostsByFolloweeUser(getCurrentUser().getId());
+    }
 }
