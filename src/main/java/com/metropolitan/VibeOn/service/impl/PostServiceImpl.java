@@ -13,10 +13,8 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
+import java.nio.file.*;
+import java.util.List;
 import java.util.UUID;
 import java.time.LocalDateTime;
 
@@ -60,5 +58,47 @@ public class PostServiceImpl implements PostService {
 
         Files.copy(image.getInputStream(), imagePath, StandardCopyOption.REPLACE_EXISTING);
         return imageName;
+    }
+
+    @Override
+    public void softDeletePost(Long id) throws AccessDeniedException {
+        User user = getCurrentUser();
+        Post post = postRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Post not found."));
+        if (post.getUser().equals(user)) {
+            post.setDeletedAt(LocalDateTime.now());
+            post.setDeleted(true);
+            postRepository.save(post);
+        } else
+            throw new AccessDeniedException("You do not have permission to delete this post.");
+    }
+
+    @Override
+    public Post getPostById(Long id) {
+        Post post = postRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Post not found."));
+        return post;
+    }
+
+    @Override
+    public Post updatePost(Long id, String newDescription) throws AccessDeniedException {
+        User user = getCurrentUser();
+        Post post = postRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Post not found."));
+        if (post.getUser().equals(user)) {
+            post.setDescription(newDescription);
+            return postRepository.save(post);
+        } else
+            throw new AccessDeniedException("You do not have permission to delete this post.");
+    }
+
+    @Override
+    public List<Post> getPostsByUserId(Long userId) {
+        return postRepository.findAllByUserIdOrderByCreatedAtDesc(userId);
+    }
+
+    @Override
+    public List<Post> getAllPosts() {
+        return postRepository.findAllByOrderByCreatedAtDesc();
     }
 }
