@@ -39,7 +39,7 @@ public class PostServiceImpl implements PostService {
 
         Post savedPost = postRepository.save(post);
 
-        return utilService.fromPostToSinglePostDto(savedPost);
+        return SinglePostDto.fromPost(savedPost);
     }
 
     @Override
@@ -82,7 +82,7 @@ public class PostServiceImpl implements PostService {
         post.setDescription(newDescription);
         postRepository.save(post);
 
-        return utilService.fromPostToSinglePostDto(post);
+        return SinglePostDto.fromPost(post);
     }
 
     @Override

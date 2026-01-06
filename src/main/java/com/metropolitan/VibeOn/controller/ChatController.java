@@ -1,5 +1,7 @@
 package com.metropolitan.VibeOn.controller;
 
+import com.metropolitan.VibeOn.dto.SingleChatDto;
+import com.metropolitan.VibeOn.dto.SinglePostDto;
 import com.metropolitan.VibeOn.entity.Chat;
 import com.metropolitan.VibeOn.entity.Message;
 import com.metropolitan.VibeOn.service.ChatService;
@@ -25,13 +27,24 @@ public class ChatController {
         return chatService.findOrCreateChat(username);
     }
 
+//    // Endpoint za sve chatove trenutnog korisnika, sortirane po poslednjoj poruci
+//    @GetMapping()
+//    public ResponseEntity<List<Chat>> getChatsForCurrentUser() {
+//        List<Chat> chats = chatService.getChatsForCurrentUser();
+//        return ResponseEntity.ok(chats);
+//    }
+
     // Endpoint za sve chatove trenutnog korisnika, sortirane po poslednjoj poruci
     @GetMapping()
-    public ResponseEntity<List<Chat>> getChatsForCurrentUser() {
-        List<Chat> chats = chatService.getChatsForCurrentUser();
-        return ResponseEntity.ok(chats);
+    public ResponseEntity<?> getChatsForCurrentUser() {
+        try {
+            return ResponseEntity.ok(chatService.getChatsForCurrentUser());
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found.");
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An error occurred: " + e.getMessage());
+        }
     }
-
 
     // Slanje poruke
     @PostMapping("/messages/{chatId}")

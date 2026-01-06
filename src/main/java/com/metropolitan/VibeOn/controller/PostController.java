@@ -71,7 +71,6 @@ public class PostController {
         }
     }
 
-
     @PatchMapping("/{id}")
     public ResponseEntity<?> updatePost(@PathVariable Long id, @RequestBody Map<String,String> newDescription) {
         try {

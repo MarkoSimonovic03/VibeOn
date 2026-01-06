@@ -1,5 +1,6 @@
 package com.metropolitan.VibeOn.dto;
 
+import com.metropolitan.VibeOn.entity.Post;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -18,4 +19,16 @@ public class SinglePostDto {
     private Long userId;
     private String username;
     private String profileImageUrl;
+
+    public static SinglePostDto fromPost(Post post) {
+        return new SinglePostDto(
+                post.getId(),
+                post.getImageUrl(),
+                post.getCreatedAt(),
+                post.getDescription(),
+                post.getUser().getId(),
+                post.getUser().getUsername(),
+                post.getUser().getProfileImageUrl()
+        );
+    }
 }

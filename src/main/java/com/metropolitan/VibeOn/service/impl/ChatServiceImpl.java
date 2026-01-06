@@ -1,5 +1,6 @@
 package com.metropolitan.VibeOn.service.impl;
 
+import com.metropolitan.VibeOn.dto.SingleChatDto;
 import com.metropolitan.VibeOn.entity.Chat;
 import com.metropolitan.VibeOn.entity.Message;
 import com.metropolitan.VibeOn.entity.User;
@@ -28,9 +29,13 @@ public class ChatServiceImpl implements ChatService {
     private final UserRepository userRepository;
     private final UtilService utilService;
 
-    public List<Chat> getChatsForCurrentUser() {
-        User currentUser = utilService.getCurrentUser();
-        return chatRepository.findAllByUserIdOrderByLastMessage(currentUser.getId());
+//    public List<Chat> getChatsForCurrentUser() {
+//        User currentUser = utilService.getCurrentUser();
+//        return chatRepository.findAllByUserIdOrderByLastMessage(currentUser.getId());
+//    }
+
+    public List<SingleChatDto> getChatsForCurrentUser() {
+        return chatRepository.findAllChatsForUser(utilService.getCurrentUser().getId());
     }
 
     @Override
