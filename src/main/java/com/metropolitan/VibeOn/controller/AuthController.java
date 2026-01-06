@@ -3,14 +3,14 @@ package com.metropolitan.VibeOn.controller;
 import com.metropolitan.VibeOn.dto.JWTAuthResponse;
 import com.metropolitan.VibeOn.dto.LoginDto;
 import com.metropolitan.VibeOn.dto.RegisterDto;
+import com.metropolitan.VibeOn.entity.Post;
 import com.metropolitan.VibeOn.repository.UserRepository;
 import com.metropolitan.VibeOn.service.AuthService;
 import lombok.AllArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 @AllArgsConstructor
 @RestController
@@ -30,9 +30,15 @@ public class AuthController {
         return ResponseEntity.ok(jwtAuthResponse);
     }
 
-    @PostMapping("/register")
-    public ResponseEntity<String> register(@RequestBody RegisterDto registerDto) {
-        String response = authService.register(registerDto);
-        return ResponseEntity.ok(response);
-    }
+        @PostMapping("/register")
+        public ResponseEntity<String> register(@RequestPart("image") MultipartFile image, @RequestPart("registerDto") RegisterDto registerDto) {
+            try {
+                String response = authService.register(image, registerDto);
+                return ResponseEntity.ok(response);
+            } catch (IllegalArgumentException e) {
+                return ResponseEntity.status(400).body("Invalid data: " + e.getMessage());
+            } catch (Exception e) {
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An error occurred: " + e.getMessage());
+            }
+        }
 }

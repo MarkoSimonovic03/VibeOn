@@ -8,6 +8,7 @@ import com.metropolitan.VibeOn.repository.RoleRepository;
 import com.metropolitan.VibeOn.repository.UserRepository;
 import com.metropolitan.VibeOn.security.JwtTokenProvider;
 import com.metropolitan.VibeOn.service.AuthService;
+import com.metropolitan.VibeOn.service.util.UtilService;
 import lombok.AllArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -15,7 +16,9 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.Set;
 
 @Service
@@ -27,6 +30,7 @@ public class AuthServiceImpl implements AuthService {
     private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
+    private final UtilService utilService;
 
 
     @Override
@@ -43,7 +47,7 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    public String register(RegisterDto registerDto) {
+    public String register(MultipartFile image, RegisterDto registerDto)  throws IOException {
         if (userRepository.existsByUsername(registerDto.getUsername())) {
             throw new RuntimeException("Username is already taken!");
         }
@@ -57,6 +61,10 @@ public class AuthServiceImpl implements AuthService {
         user.setUsername(registerDto.getUsername());
         user.setEmail(registerDto.getEmail());
         user.setPassword(passwordEncoder.encode(registerDto.getPassword()));
+
+        if (image != null && !image.isEmpty())
+            user.setProfileImageUrl(utilService.saveImage(image));
+        else throw new IllegalArgumentException("Image error");
 
         Role userRole = roleRepository.findByName("ROLE_USER")
                 .orElseThrow(() -> new RuntimeException("ROLE_USER not found"));

@@ -22,13 +22,13 @@ public class Post {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(unique = true)
+    @Column(name = "image_url", unique = true)
     private String imageUrl;
 
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
-    @Column()
+    @Column(name = "description")
     private String description;
 
     @Column(name = "is_deleted")

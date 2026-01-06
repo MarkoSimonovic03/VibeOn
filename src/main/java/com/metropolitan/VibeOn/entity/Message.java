@@ -1,5 +1,6 @@
 package com.metropolitan.VibeOn.entity;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -19,19 +20,16 @@ public class Message {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
+    @Column(name = "content", nullable = false)
     private String content;
 
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
-    @Column(nullable = false)
-    private boolean isRead;
-
     @ManyToOne()
     @JoinColumn(name = "chat_id")
+    @JsonBackReference
     private Chat chat;
-
 
     @ManyToOne()
     @JoinColumn(name = "user_id")

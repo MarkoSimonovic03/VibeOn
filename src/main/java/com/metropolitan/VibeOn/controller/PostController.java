@@ -1,5 +1,7 @@
 package com.metropolitan.VibeOn.controller;
 
+import com.metropolitan.VibeOn.dto.CreatePostDto;
+import com.metropolitan.VibeOn.dto.SinglePostDto;
 import com.metropolitan.VibeOn.entity.Post;
 import com.metropolitan.VibeOn.service.PostService;
 import lombok.RequiredArgsConstructor;
@@ -19,30 +21,15 @@ public class PostController {
 
     // Endpoint for creating new post
     @PostMapping()
-    private ResponseEntity<?> createPost(@RequestParam("image") MultipartFile image,
-                                         @RequestParam("description") String description) {
+    private ResponseEntity<?> createPost(@RequestPart("image") MultipartFile image,
+                                         @RequestPart("post") CreatePostDto createPostDto) {
         try {
-            Post createdPost = postService.createPost(image, description);
-            //TODO fix return data, make DTO for it!
-            return ResponseEntity.ok().body(createdPost);
+            SinglePostDto createdPost = postService.createPost(image, createPostDto.getDescription());
+            return ResponseEntity.status(HttpStatus.CREATED).body(createdPost);
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.status(400).body("Invalid data: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid data: " + e.getMessage());
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An error occurred: " + e.getMessage());
-        }
-    }
-
-    @DeleteMapping("/{id}")
-    public ResponseEntity<String> deletePost(@PathVariable Long id) {
-        try {
-            postService.softDeletePost(id);
-            return ResponseEntity.status(204).body("Post deleted successfully.");
-        } catch (AccessDeniedException e) {
-            return ResponseEntity.status(403).body(e.getMessage());
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(404).body("Post not found.");
-        } catch (Exception e) {
-            return ResponseEntity.status(500).body("An unexpected error occurred: " + e.getMessage());
         }
     }
 
@@ -51,9 +38,9 @@ public class PostController {
         try {
             return ResponseEntity.ok().body(postService.getPostById(id));
         } catch (RuntimeException e) {
-            return ResponseEntity.status(404).body("Post not found.");
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Post not found.");
         } catch (Exception e) {
-            return ResponseEntity.status(500).body("An unexpected error occurred: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An unexpected error occurred: " + e.getMessage());
         }
     }
 
@@ -62,7 +49,7 @@ public class PostController {
         try {
             return ResponseEntity.ok().body(postService.getPostsByUserId(userId));
         } catch (Exception e) {
-            return ResponseEntity.status(500).body("An unexpected error occurred: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An unexpected error occurred: " + e.getMessage());
         }
     }
 
@@ -71,7 +58,7 @@ public class PostController {
         try {
             return ResponseEntity.ok().body(postService.getAllPosts());
         } catch (Exception e) {
-            return ResponseEntity.status(500).body("An unexpected error occurred: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An unexpected error occurred: " + e.getMessage());
         }
     }
 
@@ -80,7 +67,7 @@ public class PostController {
         try {
             return ResponseEntity.ok().body(postService.getAllPostsByFolloweeUser());
         } catch (Exception e) {
-            return ResponseEntity.status(500).body("An unexpected error occurred: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An unexpected error occurred: " + e.getMessage());
         }
     }
 
@@ -88,14 +75,28 @@ public class PostController {
     @PatchMapping("/{id}")
     public ResponseEntity<?> updatePost(@PathVariable Long id, @RequestBody Map<String,String> newDescription) {
         try {
-            postService.updatePost(id, newDescription.get("newDescription"));
-            return ResponseEntity.status(200).body("Post updated successfully.");
+            SinglePostDto updatedPost = postService.updatePost(id, newDescription.get("newDescription"));
+            return ResponseEntity.ok().body(updatedPost);
         } catch (AccessDeniedException e) {
-            return ResponseEntity.status(403).body(e.getMessage());
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
         } catch (RuntimeException e) {
-            return ResponseEntity.status(404).body("Post not found.");
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Post not found.");
         } catch (Exception e) {
-            return ResponseEntity.status(500).body("An unexpected error occurred: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An unexpected error occurred: " + e.getMessage());
+        }
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<String> deletePost(@PathVariable Long id) {
+        try {
+            postService.softDeletePost(id);
+            return ResponseEntity.noContent().build();
+        } catch (AccessDeniedException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Not authorised" + e.getMessage());
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Post not found.");
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An unexpected error occurred: " + e.getMessage());
         }
     }
 }

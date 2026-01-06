@@ -1,5 +1,6 @@
 package com.metropolitan.VibeOn.entity;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -27,5 +28,8 @@ public class Chat {
     )
     private Set<User> users;
 
-    private String lastMessage;
+    @ManyToOne()
+    @JoinColumn(name = "last_message_id")
+    @JsonManagedReference
+    private Message lastMessage;
 }
