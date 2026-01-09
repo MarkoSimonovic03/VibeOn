@@ -2,6 +2,7 @@ package com.metropolitan.VibeOn.controller;
 
 import com.metropolitan.VibeOn.service.FollowService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -16,11 +17,24 @@ public class FollowController {
     @PostMapping("/{userId}")
     private ResponseEntity<?> createFollow(@PathVariable Long userId) {
         try {
-            return ResponseEntity.status(200).body(followService.createFollow(userId));
+            followService.createFollow(userId);
+            return ResponseEntity.ok().build();
         } catch (RuntimeException e) {
-            return ResponseEntity.status(404).body("Followee not found.");
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Followee not found.");
         } catch (Exception e) {
-            return ResponseEntity.status(500).body("An unexpected error occurred: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An unexpected error occurred: " + e.getMessage());
+        }
+    }
+
+    @GetMapping("/{userId}")
+    private ResponseEntity<?> isFollowing(@PathVariable Long userId) {
+        try {
+            Boolean isFollowing = followService.isFollowing(userId);
+            return ResponseEntity.ok().body(isFollowing);
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Followee not found.");
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An unexpected error occurred: " + e.getMessage());
         }
     }
 
@@ -28,11 +42,11 @@ public class FollowController {
     public ResponseEntity<?> unFollow(@PathVariable Long userId) {
         try {
             followService.unFollow(userId);
-            return ResponseEntity.status(204).build();
+            return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
         } catch (RuntimeException e) {
-            return ResponseEntity.status(404).body("Followee not found.");
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Followee not found.");
         } catch (Exception e) {
-            return ResponseEntity.status(500).body("An unexpected error occurred: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An unexpected error occurred: " + e.getMessage());
         }
     }
 }

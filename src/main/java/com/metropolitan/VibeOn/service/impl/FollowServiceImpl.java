@@ -11,6 +11,8 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
+import java.util.Optional;
+
 @Service
 @RequiredArgsConstructor
 public class FollowServiceImpl implements FollowService {
@@ -18,9 +20,8 @@ public class FollowServiceImpl implements FollowService {
     private final UserRepository userRepository;
     private final UtilService utilService;
 
-
     @Override
-    public Follow createFollow(Long userId) {
+    public void createFollow(Long userId) {
         User follower = utilService.getCurrentUser();
         User followee = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("Followee not found"));
@@ -28,9 +29,19 @@ public class FollowServiceImpl implements FollowService {
         Follow follow = new Follow();
         follow.setFollower(follower);
         follow.setFollowee(followee);
-
-        return followRepository.save(follow);
+        followRepository.save(follow);
     }
+
+    @Override
+    public Boolean isFollowing(Long userId) {
+        User currentUser = utilService.getCurrentUser();
+        User otherUser = utilService.getUserById(userId);
+
+        Optional<Follow> follow = followRepository.findByFollowerIdAndFolloweeId(currentUser.getId(),otherUser.getId());
+
+        return follow.isPresent();
+    }
+
 
     @Override
     public void unFollow(Long userId) {
@@ -38,7 +49,8 @@ public class FollowServiceImpl implements FollowService {
         User followee = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("Followee not found"));
 
-        Follow follow = followRepository.findByFollowerIdAndFolloweeId(follower.getId(), followee.getId());
+        Follow follow = followRepository.findByFollowerIdAndFolloweeId(follower.getId(), followee.getId())
+                .orElseThrow(() -> new RuntimeException("Follow not found"));
 
         followRepository.delete(follow);
     }

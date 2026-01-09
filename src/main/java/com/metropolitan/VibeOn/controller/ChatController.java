@@ -1,8 +1,7 @@
 package com.metropolitan.VibeOn.controller;
 
-import com.metropolitan.VibeOn.dto.SingleChatDto;
-import com.metropolitan.VibeOn.dto.SinglePostDto;
-import com.metropolitan.VibeOn.entity.Chat;
+import com.metropolitan.VibeOn.dto.FullChatDto;
+import com.metropolitan.VibeOn.dto.SingleMessageDto;
 import com.metropolitan.VibeOn.entity.Message;
 import com.metropolitan.VibeOn.service.ChatService;
 import com.metropolitan.VibeOn.service.MessageService;
@@ -11,7 +10,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -21,20 +19,19 @@ public class ChatController {
     private final MessageService messageService;
     private final ChatService chatService;
 
-    @PostMapping("/find-or-create")
-    public Chat findOrCreateChat(@RequestBody Map<String, String> body) {
-        String username = body.get("username");
-        return chatService.findOrCreateChat(username);
+    @PostMapping("/messages/{chatId}")
+    public ResponseEntity<?> sendMessage(@PathVariable Long chatId,
+                                         @RequestBody Map<String, String> body) {
+        try {
+            SingleMessageDto message = chatService.sendMessage(chatId, body.get("content"));
+            return ResponseEntity.ok().body(message);
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Chat not found or unauthorized: " + e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An unexpected error occurred: " + e.getMessage());
+        }
     }
 
-//    // Endpoint za sve chatove trenutnog korisnika, sortirane po poslednjoj poruci
-//    @GetMapping()
-//    public ResponseEntity<List<Chat>> getChatsForCurrentUser() {
-//        List<Chat> chats = chatService.getChatsForCurrentUser();
-//        return ResponseEntity.ok(chats);
-//    }
-
-    // Endpoint za sve chatove trenutnog korisnika, sortirane po poslednjoj poruci
     @GetMapping()
     public ResponseEntity<?> getChatsForCurrentUser() {
         try {
@@ -46,31 +43,47 @@ public class ChatController {
         }
     }
 
-    // Slanje poruke
-    @PostMapping("/messages/{chatId}")
-    public ResponseEntity<?> sendMessage(@PathVariable Long chatId,
-                                         @RequestBody Map<String, String> body) {
+    @GetMapping("/{username}")
+    public ResponseEntity<?> getChat(@PathVariable String username) {
         try {
-            String content = body.get("content");
-            Message message = chatService.sendMessage(chatId, content);
-            return ResponseEntity.ok().body(message);
+            return ResponseEntity.ok().body(chatService.getChat(username));
         } catch (RuntimeException e) {
-            return ResponseEntity.status(404).body("Chat not found or unauthorized: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found" + e.getMessage());
         } catch (Exception e) {
-            return ResponseEntity.status(500).body("An unexpected error occurred: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An unexpected error occurred: " + e.getMessage());
         }
     }
 
-    // Pregled svih poruka za dati chat
-    @GetMapping("/messages/{chatId}")
-    public ResponseEntity<?> getMessages(@PathVariable Long chatId) {
-        try {
-            List<Message> messages = chatService.getMessagesForChat(chatId);
-            return ResponseEntity.ok().body(messages);
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(404).body("Chat not found: " + e.getMessage());
-        } catch (Exception e) {
-            return ResponseEntity.status(500).body("An unexpected error occurred: " + e.getMessage());
-        }
-    }
+//    // Endpoint za sve chatove trenutnog korisnika, sortirane po poslednjoj poruci
+//    @GetMapping()
+//    public ResponseEntity<List<Chat>> getChatsForCurrentUser() {
+//        List<Chat> chats = chatService.getChatsForCurrentUser();
+//        return ResponseEntity.ok(chats);
+//    }
+
+//    // Pregled svih poruka za dati chat
+//    @GetMapping("/messages/{chatId}")
+//    public ResponseEntity<?> getMessages(@PathVariable Long chatId) {
+//        try {
+//            List<Message> messages = chatService.getMessagesForChat(chatId);
+//            return ResponseEntity.ok().body(messages);
+//        } catch (RuntimeException e) {
+//            return ResponseEntity.status(404).body("Chat not found: " + e.getMessage());
+//        } catch (Exception e) {
+//            return ResponseEntity.status(500).body("An unexpected error occurred: " + e.getMessage());
+//        }
+//    }
+
+//    // Pregled svih poruka za dati chat
+//    @GetMapping("/messages/{chatId}")
+//    public ResponseEntity<?> getMessages(@PathVariable Long chatId) {
+//        try {
+//            FullChatDto chat = chatService.getMessagesForChat(chatId);
+//            return ResponseEntity.ok().body(chat);
+//        } catch (RuntimeException e) {
+//            return ResponseEntity.status(404).body("Chat not found: " + e.getMessage());
+//        } catch (Exception e) {
+//            return ResponseEntity.status(500).body("An unexpected error occurred: " + e.getMessage());
+//        }
+//    }
 }

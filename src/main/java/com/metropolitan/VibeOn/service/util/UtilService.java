@@ -31,6 +31,16 @@ public class UtilService {
                 .orElseThrow(() -> new RuntimeException("User not found"));
     }
 
+    public User getUserByUsername(String username) {
+        return userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+    }
+
+    public User getUserById(Long id) {
+        return userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+    }
+
     public String saveImage(MultipartFile image) throws IOException {
         File uploadDir = new File(IMAGE_DIRECTORY);
         if (!uploadDir.exists()) uploadDir.mkdirs();
@@ -40,15 +50,5 @@ public class UtilService {
 
         Files.copy(image.getInputStream(), imagePath, StandardCopyOption.REPLACE_EXISTING);
         return imageName;
-    }
-
-    public SinglePostDto fromPostToSinglePostDto(Post post) {
-        return new SinglePostDto(post.getId(),
-                post.getImageUrl(),
-                post.getCreatedAt(),
-                post.getDescription(),
-                post.getUser().getId(),
-                post.getUser().getUsername(),
-                post.getUser().getProfileImageUrl());
     }
 }

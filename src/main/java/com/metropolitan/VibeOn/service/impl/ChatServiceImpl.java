@@ -1,6 +1,9 @@
 package com.metropolitan.VibeOn.service.impl;
 
+import com.metropolitan.VibeOn.dto.FullChatDto;
 import com.metropolitan.VibeOn.dto.SingleChatDto;
+import com.metropolitan.VibeOn.dto.SingleMessageDto;
+import com.metropolitan.VibeOn.dto.SinglePostDto;
 import com.metropolitan.VibeOn.entity.Chat;
 import com.metropolitan.VibeOn.entity.Message;
 import com.metropolitan.VibeOn.entity.User;
@@ -15,6 +18,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
+import java.nio.file.AccessDeniedException;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -29,31 +33,8 @@ public class ChatServiceImpl implements ChatService {
     private final UserRepository userRepository;
     private final UtilService utilService;
 
-//    public List<Chat> getChatsForCurrentUser() {
-//        User currentUser = utilService.getCurrentUser();
-//        return chatRepository.findAllByUserIdOrderByLastMessage(currentUser.getId());
-//    }
-
-    public List<SingleChatDto> getChatsForCurrentUser() {
-        return chatRepository.findAllChatsForUser(utilService.getCurrentUser().getId());
-    }
-
     @Override
-    public List<Message> getMessagesForChat(Long chatId) {
-        // Optional: proveri da li currentUser pripada chat-u
-        User currentUser = utilService.getCurrentUser();
-        Chat chat = chatRepository.findById(chatId)
-                .orElseThrow(() -> new RuntimeException("Chat not found"));
-
-        if (!chat.getUsers().contains(currentUser)) {
-            throw new RuntimeException("Not authorized for this chat");
-        }
-
-        return messageRepository.findByChatIdOrderByCreatedAtDesc(chatId);
-    }
-
-    @Override
-    public Message sendMessage(Long chatId, String content) {
+    public SingleMessageDto sendMessage(Long chatId, String content) {
         User currentUser = utilService.getCurrentUser();
         Chat chat = chatRepository.findById(chatId)
                 .orElseThrow(() -> new RuntimeException("Chat not found"));
@@ -73,28 +54,83 @@ public class ChatServiceImpl implements ChatService {
         chat.setLastMessage(savedMessage);
         chatRepository.save(chat);
 
-        return savedMessage;
+        return SingleMessageDto.fromMessage(message);
+    }
+
+    public List<SingleChatDto> getChatsForCurrentUser() {
+        return chatRepository.findAllChatsForUser(utilService.getCurrentUser().getId());
     }
 
     @Override
-    public Chat findOrCreateChat(String username) {
+    public FullChatDto getChat(String username) {
         User currentUser = utilService.getCurrentUser();
+        User otherUser = utilService.getUserByUsername(username);
 
-        User otherUser = userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+        Chat chat = chatRepository
+                .findChatBetweenUsers(currentUser.getId(), otherUser.getId())
+                .orElseGet(() -> {
+                    Chat newChat = new Chat();
+                    newChat.setUsers(Set.of(currentUser, otherUser));
+                    return chatRepository.save(newChat);
+                });
 
-        // 1️⃣ Pokušaj da nađeš postojeći chat
-        Optional<Chat> existingChat =
-                chatRepository.findChatBetweenUsers(currentUser.getId(), otherUser.getId());
-
-        if (existingChat.isPresent()) {
-            return existingChat.get();
-        }
-
-        // 2️⃣ Ako ne postoji → kreiraj novi
-        Chat chat = new Chat();
-        chat.setUsers(Set.of(currentUser, otherUser));
-
-        return chatRepository.save(chat);
+        return new FullChatDto(
+                chat.getId(),
+                currentUser.getUsername(),
+                currentUser.getProfileImageUrl(),
+                otherUser.getUsername(),
+                otherUser.getProfileImageUrl(),
+                messageRepository.findMessagesByChatIdAsDto(chat.getId())
+        );
     }
 }
+
+    //    public List<Chat> getChatsForCurrentUser() {
+//        User currentUser = utilService.getCurrentUser();
+//        return chatRepository.findAllByUserIdOrderByLastMessage(currentUser.getId());
+//    }
+
+
+//    @Override
+//    public List<Message> getMessagesForChat(Long chatId) {
+//        // Optional: proveri da li currentUser pripada chat-u
+//        User currentUser = utilService.getCurrentUser();
+//        Chat chat = chatRepository.findById(chatId)
+//                .orElseThrow(() -> new RuntimeException("Chat not found"));
+//
+//        if (!chat.getUsers().contains(currentUser)) {
+//            throw new RuntimeException("Not authorized for this chat");
+//        }
+//
+//        return messageRepository.findByChatIdOrderByCreatedAtDesc(chatId);
+//    }
+
+//    @Override
+//    public FullChatDto getMessagesForChat(Long chatId) throws AccessDeniedException {
+//        User currentUser = utilService.getCurrentUser();
+//
+//        Chat chat = chatRepository.findById(chatId)
+//                .orElseThrow(() -> new RuntimeException("Chat not found"));
+//
+//        if (!chat.getUsers().contains(currentUser)) {
+//            throw new AccessDeniedException("Not authorized for this chat");
+//        }
+//
+//        User otherUser = chat.getUsers().stream()
+//                .filter(user -> !user.getId().equals(currentUser.getId()))
+//                .findFirst()
+//                .orElseThrow(() -> new RuntimeException("Other user not found"));
+//
+//        List<SingleMessageDto> messages =
+//                messageRepository.findMessagesByChatIdAsDto(chatId);
+//
+//        return new FullChatDto(
+//                chatId,
+//                currentUser.getUsername(),
+//                currentUser.getProfileImageUrl(),
+//                otherUser.getUsername(),
+//                otherUser.getProfileImageUrl(),
+//                messages
+//        );
+//    }
+
