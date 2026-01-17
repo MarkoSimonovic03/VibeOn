@@ -35,7 +35,6 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public String login(LoginDto loginDto) {
-
         Authentication authentication = authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(
                 loginDto.getUsername(), loginDto.getPassword()));
 
@@ -47,20 +46,21 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    public String register(MultipartFile image, RegisterDto registerDto)  throws IOException {
-        if (userRepository.existsByUsername(registerDto.getUsername())) {
+    public void register(MultipartFile image, RegisterDto registerDto) throws IOException {
+        if (userRepository.existsByUsername(registerDto.getUsername()))
             throw new RuntimeException("Username is already taken!");
-        }
 
-        if (userRepository.existsByEmail(registerDto.getEmail())) {
+        if (userRepository.existsByEmail(registerDto.getEmail()))
             throw new RuntimeException("Email is already taken!");
-        }
 
         User user = new User();
-        user.setName(registerDto.getName());
         user.setUsername(registerDto.getUsername());
+        user.setName(registerDto.getName());
+        user.setLastName(registerDto.getLastName());
         user.setEmail(registerDto.getEmail());
         user.setPassword(passwordEncoder.encode(registerDto.getPassword()));
+        user.setBirthDate(registerDto.getBirthDate());
+        user.setGender(registerDto.isGender());
 
         if (image != null && !image.isEmpty())
             user.setProfileImageUrl(utilService.saveImage(image));
@@ -71,8 +71,5 @@ public class AuthServiceImpl implements AuthService {
         user.setRoles(Set.of(userRole));
 
         userRepository.save(user);
-
-        return "User registered successfully!";
     }
-
 }

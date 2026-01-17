@@ -9,5 +9,5 @@ import java.io.IOException;
 public interface AuthService {
     String login(LoginDto loginDto);
 
-    String register(MultipartFile image, RegisterDto registerDto) throws IOException;
+    void register(MultipartFile image, RegisterDto registerDto) throws IOException;
 }
