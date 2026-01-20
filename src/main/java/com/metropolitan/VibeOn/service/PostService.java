@@ -1,5 +1,6 @@
 package com.metropolitan.VibeOn.service;
 
+import com.metropolitan.VibeOn.dto.ProfileDto;
 import com.metropolitan.VibeOn.dto.SinglePostDto;
 import com.metropolitan.VibeOn.entity.Post;
 import org.springframework.web.multipart.MultipartFile;
@@ -17,7 +18,7 @@ public interface PostService {
 
     SinglePostDto updatePost(Long id, String newDescription) throws AccessDeniedException;
 
-    List<SinglePostDto> getPostsByUserId(Long userId);
+    ProfileDto getPostsByUsername(String username);
 
     List<SinglePostDto> getAllPosts();
 

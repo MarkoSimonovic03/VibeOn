@@ -1,5 +1,6 @@
 package com.metropolitan.VibeOn.service.impl;
 
+import com.metropolitan.VibeOn.dto.ProfileDto;
 import com.metropolitan.VibeOn.dto.SinglePostDto;
 import com.metropolitan.VibeOn.entity.Post;
 import com.metropolitan.VibeOn.entity.User;
@@ -10,7 +11,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
-
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.io.IOException;
 import java.nio.file.*;
 import java.util.List;
@@ -57,8 +59,10 @@ public class PostServiceImpl implements PostService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<SinglePostDto> getPostsByUserId(Long userId) {
-        return postRepository.findAllPostsByUserIdAsDto(userId);
+    public ProfileDto getPostsByUsername(String username) {
+        User user = utilService.getUserByUsername(username);
+        List<SinglePostDto> posts = postRepository.findAllPostsByUsernameAsDto(username);
+        return ProfileDto.fromUserAndPosts(user,posts);
     }
 
     @Override

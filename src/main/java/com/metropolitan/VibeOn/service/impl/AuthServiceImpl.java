@@ -1,5 +1,6 @@
 package com.metropolitan.VibeOn.service.impl;
 
+import com.metropolitan.VibeOn.dto.HeaderUserDto;
 import com.metropolitan.VibeOn.dto.LoginDto;
 import com.metropolitan.VibeOn.dto.RegisterDto;
 import com.metropolitan.VibeOn.entity.Role;
@@ -19,6 +20,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Set;
 
 @Service
@@ -61,6 +64,7 @@ public class AuthServiceImpl implements AuthService {
         user.setPassword(passwordEncoder.encode(registerDto.getPassword()));
         user.setBirthDate(registerDto.getBirthDate());
         user.setGender(registerDto.isGender());
+        user.setCreatedAt(LocalDate.now());
 
         if (image != null && !image.isEmpty())
             user.setProfileImageUrl(utilService.saveImage(image));
@@ -71,5 +75,11 @@ public class AuthServiceImpl implements AuthService {
         user.setRoles(Set.of(userRole));
 
         userRepository.save(user);
+    }
+
+    @Override
+    public HeaderUserDto HeaderUserInfo() {
+        User curentUser = utilService.getCurrentUser();
+        return new HeaderUserDto(curentUser.getUsername(), curentUser.getProfileImageUrl());
     }
 }

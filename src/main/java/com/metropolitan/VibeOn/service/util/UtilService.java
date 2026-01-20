@@ -45,10 +45,18 @@ public class UtilService {
         File uploadDir = new File(IMAGE_DIRECTORY);
         if (!uploadDir.exists()) uploadDir.mkdirs();
 
-        String imageName = UUID.randomUUID().toString() + "_" + image.getOriginalFilename();
+        String originalName = image.getOriginalFilename();
+        String extension = "";
+
+        if (originalName != null && originalName.contains(".")) {
+            extension = originalName.substring(originalName.lastIndexOf("."));
+        }
+
+        String imageName = UUID.randomUUID() + extension;
         Path imagePath = Paths.get(IMAGE_DIRECTORY, imageName);
 
         Files.copy(image.getInputStream(), imagePath, StandardCopyOption.REPLACE_EXISTING);
         return imageName;
     }
+
 }

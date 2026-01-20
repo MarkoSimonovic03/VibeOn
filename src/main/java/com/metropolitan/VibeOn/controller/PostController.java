@@ -44,10 +44,10 @@ public class PostController {
         }
     }
 
-    @GetMapping("/user/{userId}")
-    public ResponseEntity<?> getPostsByUserId(@PathVariable Long userId) {
+    @GetMapping("/user/{username}")
+    public ResponseEntity<?> getPostsByUsername(@PathVariable String username) {
         try {
-            return ResponseEntity.ok().body(postService.getPostsByUserId(userId));
+            return ResponseEntity.ok().body(postService.getPostsByUsername(username));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An unexpected error occurred: " + e.getMessage());
         }

@@ -56,10 +56,10 @@ public interface PostRepository extends JpaRepository<Post, Long> {
                 )
                 FROM Post p
                 JOIN p.user u
-                WHERE u.id = :userId
+                WHERE u.username = :username
                 ORDER BY p.createdAt DESC
             """)
-    List<SinglePostDto> findAllPostsByUserIdAsDto(@Param("userId") Long userId);
+    List<SinglePostDto> findAllPostsByUsernameAsDto(@Param("username") String username);
 
     @Query("""
                 SELECT new com.metropolitan.VibeOn.dto.SinglePostDto(
