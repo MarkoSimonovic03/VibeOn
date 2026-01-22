@@ -16,21 +16,9 @@ import java.util.Map;
 @RequiredArgsConstructor
 @RequestMapping("/api/chats")
 public class ChatController {
-    private final MessageService messageService;
     private final ChatService chatService;
 
-    @PostMapping("/messages/{chatId}")
-    public ResponseEntity<?> sendMessage(@PathVariable Long chatId,
-                                         @RequestBody Map<String, String> body) {
-        try {
-            SingleMessageDto message = chatService.sendMessage(chatId, body.get("content"));
-            return ResponseEntity.ok().body(message);
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Chat not found or unauthorized: " + e.getMessage());
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An unexpected error occurred: " + e.getMessage());
-        }
-    }
+
 
     @GetMapping()
     public ResponseEntity<?> getChatsForCurrentUser() {
@@ -53,6 +41,22 @@ public class ChatController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An unexpected error occurred: " + e.getMessage());
         }
     }
+}
+//    @PostMapping("/messages/{chatId}")
+//    public ResponseEntity<?> sendMessage(@PathVariable Long chatId,
+//                                         @RequestBody Map<String, String> body) {
+//        try {
+//            SingleMessageDto message = chatService.sendMessage(chatId, body.get("content"));
+//            return ResponseEntity.ok().body(message);
+//        } catch (RuntimeException e) {
+//            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Chat not found or unauthorized: " + e.getMessage());
+//        } catch (Exception e) {
+//            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An unexpected error occurred: " + e.getMessage());
+//        }
+//    }
+
+
+
 
 //    // Endpoint za sve chatove trenutnog korisnika, sortirane po poslednjoj poruci
 //    @GetMapping()
@@ -86,4 +90,4 @@ public class ChatController {
 //            return ResponseEntity.status(500).body("An unexpected error occurred: " + e.getMessage());
 //        }
 //    }
-}
+

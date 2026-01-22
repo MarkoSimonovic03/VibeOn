@@ -10,7 +10,7 @@ import java.nio.file.AccessDeniedException;
 import java.util.List;
 
 public interface ChatService {
-    SingleMessageDto sendMessage(Long chatId, String content);
+    SingleMessageDto sendMessage(String username, Long chatId, String content);
 
     List<SingleChatDto> getChatsForCurrentUser();
 

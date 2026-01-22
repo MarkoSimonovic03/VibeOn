@@ -34,12 +34,16 @@ public class ChatServiceImpl implements ChatService {
     private final UtilService utilService;
 
     @Override
-    public SingleMessageDto sendMessage(Long chatId, String content) {
-        User currentUser = utilService.getCurrentUser();
+    public SingleMessageDto sendMessage(String username, Long chatId, String content) {
+        User currentUser = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("User not found"));
         Chat chat = chatRepository.findById(chatId)
                 .orElseThrow(() -> new RuntimeException("Chat not found"));
 
-        if (!chat.getUsers().contains(currentUser)) {
+        boolean isMember = chat.getUsers().stream()
+                .anyMatch(u -> u.getId().equals(currentUser.getId()));
+
+        if (!isMember) {
             throw new RuntimeException("Not authorized to send message in this chat");
         }
 
@@ -54,7 +58,7 @@ public class ChatServiceImpl implements ChatService {
         chat.setLastMessage(savedMessage);
         chatRepository.save(chat);
 
-        return SingleMessageDto.fromMessage(message);
+        return SingleMessageDto.fromMessage(savedMessage);
     }
 
     public List<SingleChatDto> getChatsForCurrentUser() {

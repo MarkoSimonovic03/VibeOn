@@ -2,8 +2,10 @@ package com.metropolitan.VibeOn.service.impl;
 
 import com.metropolitan.VibeOn.dto.ProfileDto;
 import com.metropolitan.VibeOn.dto.SinglePostDto;
+import com.metropolitan.VibeOn.entity.Follow;
 import com.metropolitan.VibeOn.entity.Post;
 import com.metropolitan.VibeOn.entity.User;
+import com.metropolitan.VibeOn.repository.FollowRepository;
 import com.metropolitan.VibeOn.repository.PostRepository;
 import com.metropolitan.VibeOn.service.PostService;
 import com.metropolitan.VibeOn.service.util.UtilService;
@@ -17,12 +19,14 @@ import java.io.IOException;
 import java.nio.file.*;
 import java.util.List;
 import java.time.LocalDateTime;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
 public class PostServiceImpl implements PostService {
     private final PostRepository postRepository;
     private final UtilService utilService;
+    private final FollowRepository followRepository;
 
     @Override
     @Transactional
@@ -60,9 +64,14 @@ public class PostServiceImpl implements PostService {
     @Override
     @Transactional(readOnly = true)
     public ProfileDto getPostsByUsername(String username) {
-        User user = utilService.getUserByUsername(username);
+        User currentUser = utilService.getCurrentUser();
+        User otherUser = utilService.getUserByUsername(username);
+
         List<SinglePostDto> posts = postRepository.findAllPostsByUsernameAsDto(username);
-        return ProfileDto.fromUserAndPosts(user,posts);
+        Optional<Follow> follow = followRepository.findByFollowerIdAndFolloweeId(currentUser.getId(),otherUser.getId());
+        Boolean isFollowing = follow.isPresent();
+        
+        return ProfileDto.fromUserAndPosts(otherUser,posts, isFollowing);
     }
 
     @Override
