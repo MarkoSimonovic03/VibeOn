@@ -63,15 +63,8 @@ public class PostServiceImpl implements PostService {
 
     @Override
     @Transactional(readOnly = true)
-    public ProfileDto getPostsByUsername(String username) {
-        User currentUser = utilService.getCurrentUser();
-        User otherUser = utilService.getUserByUsername(username);
-
-        List<SinglePostDto> posts = postRepository.findAllPostsByUsernameAsDto(username);
-        Optional<Follow> follow = followRepository.findByFollowerIdAndFolloweeId(currentUser.getId(),otherUser.getId());
-        Boolean isFollowing = follow.isPresent();
-        
-        return ProfileDto.fromUserAndPosts(otherUser,posts, isFollowing);
+    public List<SinglePostDto> getPostsByUsername(String username) {
+        return postRepository.findAllPostsByUsernameAsDto(username);
     }
 
     @Override

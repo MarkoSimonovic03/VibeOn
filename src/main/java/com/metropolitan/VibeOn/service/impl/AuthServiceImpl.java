@@ -1,14 +1,15 @@
 package com.metropolitan.VibeOn.service.impl;
 
-import com.metropolitan.VibeOn.dto.HeaderUserDto;
-import com.metropolitan.VibeOn.dto.LoginDto;
-import com.metropolitan.VibeOn.dto.RegisterDto;
+import com.metropolitan.VibeOn.dto.*;
+import com.metropolitan.VibeOn.entity.Follow;
 import com.metropolitan.VibeOn.entity.Role;
 import com.metropolitan.VibeOn.entity.User;
+import com.metropolitan.VibeOn.repository.FollowRepository;
 import com.metropolitan.VibeOn.repository.RoleRepository;
 import com.metropolitan.VibeOn.repository.UserRepository;
 import com.metropolitan.VibeOn.security.JwtTokenProvider;
 import com.metropolitan.VibeOn.service.AuthService;
+import com.metropolitan.VibeOn.service.FollowService;
 import com.metropolitan.VibeOn.service.util.UtilService;
 import lombok.AllArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -17,11 +18,14 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 @Service
@@ -31,6 +35,7 @@ public class AuthServiceImpl implements AuthService {
     private final AuthenticationManager authenticationManager;
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
+    private final FollowRepository followRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
     private final UtilService utilService;
@@ -81,5 +86,17 @@ public class AuthServiceImpl implements AuthService {
     public HeaderUserDto HeaderUserInfo() {
         User curentUser = utilService.getCurrentUser();
         return new HeaderUserDto(curentUser.getUsername(), curentUser.getProfileImageUrl());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public ProfileDto getProfileInfo(String username) {
+        User currentUser = utilService.getCurrentUser();
+        User otherUser = utilService.getUserByUsername(username);
+
+        Optional<Follow> follow = followRepository.findByFollowerIdAndFolloweeId(currentUser.getId(),otherUser.getId());
+        Boolean isFollowing = follow.isPresent();
+
+        return ProfileDto.fromUser(otherUser, isFollowing);
     }
 }

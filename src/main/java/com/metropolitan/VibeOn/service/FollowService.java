@@ -8,4 +8,6 @@ public interface FollowService {
     Boolean isFollowing(Long userId);
 
     void unFollow(Long userId);
+
+    void toggleFollow(Long userId);
 }

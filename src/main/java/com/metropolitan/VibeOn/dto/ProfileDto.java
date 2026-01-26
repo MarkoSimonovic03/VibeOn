@@ -24,9 +24,8 @@ public class ProfileDto {
     private LocalDate birthDate;
     private boolean gender;
     private Boolean isFollowing;
-    private List<SinglePostDto> posts;
 
-    public static ProfileDto fromUserAndPosts(User user, List<SinglePostDto> posts, Boolean isFollowing) {
+    public static ProfileDto fromUser(User user, Boolean isFollowing) {
         return new ProfileDto(
                 user.getId(),
                 user.getUsername(),
@@ -37,8 +36,7 @@ public class ProfileDto {
                 user.getProfileImageUrl(),
                 user.getBirthDate(),
                 user.isGender(),
-                isFollowing,
-                posts
+                isFollowing
         );
     }
 }

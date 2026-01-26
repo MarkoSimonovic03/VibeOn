@@ -18,7 +18,7 @@ public interface PostService {
 
     SinglePostDto updatePost(Long id, String newDescription) throws AccessDeniedException;
 
-    ProfileDto getPostsByUsername(String username);
+    List<SinglePostDto> getPostsByUsername(String username);
 
     List<SinglePostDto> getAllPosts();
 
