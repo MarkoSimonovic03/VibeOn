@@ -18,12 +18,12 @@ public class ChatWebSocketController {
     private final SimpMessagingTemplate messagingTemplate;
 
     /**
-     * Frontend šalje poruku na:
-     *   /app/chat.send
-     *
-     * Server emituje poruku na:
-     *   /topic/chat/{chatId}
-     */
+     *      * Frontend šalje poruku na:
+     *      *   /app/chat.send
+     *      *
+     *      * Server emituje poruku na:
+     *      *   /topic/chat/{chatId}
+     *      */
     @MessageMapping("/chat.send")
     public void sendMessage(ChatMessageWsDto message, Principal principal) {
 
@@ -31,11 +31,9 @@ public class ChatWebSocketController {
             throw new RuntimeException("User not authenticated");
         }
 
-        // 1️⃣ Sačuvaj poruku sa korisnikom iz Principal-a
         SingleMessageDto savedMessage =
                 chatService.sendMessage(principal.getName(), message.getChatId(), message.getContent());
 
-        // 2️⃣ Pošalji realtime svim klijentima u tom chatu
         messagingTemplate.convertAndSend(
                 "/topic/chat/" + message.getChatId(),
                 savedMessage
