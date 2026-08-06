@@ -1,5 +1,6 @@
 package com.metropolitan.VibeOn.service;
 
+import com.metropolitan.VibeOn.dto.PostLikeResponseDto;
 import com.metropolitan.VibeOn.dto.SinglePostDto;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -21,4 +22,8 @@ public interface PostService {
     List<SinglePostDto> getAllPosts();
 
     List<SinglePostDto> getAllPostsByFolloweeUser();
+
+    PostLikeResponseDto likePost(Long id);
+
+    PostLikeResponseDto unlikePost(Long id);
 }

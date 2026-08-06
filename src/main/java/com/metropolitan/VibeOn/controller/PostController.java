@@ -1,6 +1,7 @@
 package com.metropolitan.VibeOn.controller;
 
 import com.metropolitan.VibeOn.dto.CreatePostDto;
+import com.metropolitan.VibeOn.dto.PostLikeResponseDto;
 import com.metropolitan.VibeOn.dto.SinglePostDto;
 import com.metropolitan.VibeOn.dto.UpdatePostDto;
 import com.metropolitan.VibeOn.service.PostService;
@@ -100,6 +101,28 @@ public class PostController {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Post not found.");
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An unexpected error occurred.");
+        }
+    }
+
+    @PostMapping("/{id}/likes")
+    public ResponseEntity<PostLikeResponseDto> likePost(@PathVariable @Positive Long id) {
+        try {
+            return ResponseEntity.ok(postService.likePost(id));
+        } catch (org.springframework.security.access.AccessDeniedException exception) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        } catch (RuntimeException exception) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    @DeleteMapping("/{id}/likes")
+    public ResponseEntity<PostLikeResponseDto> unlikePost(@PathVariable @Positive Long id) {
+        try {
+            return ResponseEntity.ok(postService.unlikePost(id));
+        } catch (org.springframework.security.access.AccessDeniedException exception) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        } catch (RuntimeException exception) {
+            return ResponseEntity.notFound().build();
         }
     }
 }

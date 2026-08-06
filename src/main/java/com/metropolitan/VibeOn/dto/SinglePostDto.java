@@ -1,7 +1,6 @@
 package com.metropolitan.VibeOn.dto;
 
 import com.metropolitan.VibeOn.entity.Post;
-import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -10,7 +9,6 @@ import java.time.LocalDateTime;
 @Getter
 @Setter
 @NoArgsConstructor
-@AllArgsConstructor
 public class SinglePostDto {
     private Long id;
     private String imageUrl;
@@ -19,6 +17,26 @@ public class SinglePostDto {
     private Long userId;
     private String username;
     private String profileImageUrl;
+    private long likeCount;
+    private boolean likedByCurrentUser;
+
+    public SinglePostDto(
+            Long id,
+            String imageUrl,
+            LocalDateTime createdAt,
+            String description,
+            Long userId,
+            String username,
+            String profileImageUrl
+    ) {
+        this.id = id;
+        this.imageUrl = imageUrl;
+        this.createdAt = createdAt;
+        this.description = description;
+        this.userId = userId;
+        this.username = username;
+        this.profileImageUrl = profileImageUrl;
+    }
 
     public static SinglePostDto fromPost(Post post) {
         return new SinglePostDto(
