@@ -22,6 +22,8 @@ import java.io.IOException;
 import java.nio.file.AccessDeniedException;
 import java.util.List;
 import java.time.LocalDateTime;
+import java.util.Locale;
+import java.util.regex.Pattern;
 
 @Service
 @RequiredArgsConstructor
@@ -190,6 +192,26 @@ public class PostServiceImpl implements PostService {
                 .ifPresent(postBookmarkRepository::delete);
 
         return getBookmarkStatus(id, currentUser.getId());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    @PreAuthorize("hasRole('USER')")
+    public List<SinglePostDto> searchPostsByHashtag(String hashtag) {
+        Long currentUserId = userLookupService.getCurrentUser().getId();
+        String normalizedHashtag = hashtag.trim().toLowerCase(Locale.ROOT);
+        Pattern exactHashtag = Pattern.compile(
+                "(?iu)(?<![\\p{L}\\p{N}_])#" + Pattern.quote(normalizedHashtag)
+                        + "(?![\\p{L}\\p{N}_])"
+        );
+
+        List<SinglePostDto> matchingPosts = postRepository
+                .findHashtagCandidates(normalizedHashtag)
+                .stream()
+                .filter(post -> exactHashtag.matcher(post.getDescription()).find())
+                .toList();
+
+        return withCurrentUserState(matchingPosts, currentUserId);
     }
 
     private List<SinglePostDto> withCurrentUserState(List<SinglePostDto> posts, Long currentUserId) {

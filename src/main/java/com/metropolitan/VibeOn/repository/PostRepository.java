@@ -96,4 +96,21 @@ public interface PostRepository extends JpaRepository<Post, Long> {
                 ORDER BY b.id DESC
             """)
     List<SinglePostDto> findAllBookmarkedPostsAsDto(@Param("userId") Long userId);
+
+    @Query("""
+                SELECT new com.metropolitan.VibeOn.dto.SinglePostDto(
+                    p.id,
+                    p.imageUrl,
+                    p.createdAt,
+                    p.description,
+                    u.id,
+                    u.username,
+                    u.profileImageUrl
+                )
+                FROM Post p
+                JOIN p.user u
+                WHERE LOWER(p.description) LIKE LOWER(CONCAT('%#', :hashtag, '%'))
+                ORDER BY p.createdAt DESC
+            """)
+    List<SinglePostDto> findHashtagCandidates(@Param("hashtag") String hashtag);
 }
