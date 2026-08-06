@@ -8,6 +8,7 @@ import com.metropolitan.VibeOn.entity.PostBookmark;
 import com.metropolitan.VibeOn.entity.PostLike;
 import com.metropolitan.VibeOn.entity.User;
 import com.metropolitan.VibeOn.repository.PostBookmarkRepository;
+import com.metropolitan.VibeOn.repository.PostCommentRepository;
 import com.metropolitan.VibeOn.repository.PostLikeRepository;
 import com.metropolitan.VibeOn.repository.PostRepository;
 import com.metropolitan.VibeOn.service.ImageStorageService;
@@ -23,16 +24,21 @@ import java.nio.file.AccessDeniedException;
 import java.util.List;
 import java.time.LocalDateTime;
 import java.util.Locale;
+import java.util.Comparator;
 import java.util.regex.Pattern;
+import java.time.Duration;
 
 @Service
 @RequiredArgsConstructor
 public class PostServiceImpl implements PostService {
+    private static final int EXPLORE_RESULT_LIMIT = 30;
+
     private final PostRepository postRepository;
     private final UserLookupService userLookupService;
     private final ImageStorageService imageStorageService;
     private final PostLikeRepository postLikeRepository;
     private final PostBookmarkRepository postBookmarkRepository;
+    private final PostCommentRepository postCommentRepository;
 
     @Override
     @Transactional
@@ -214,6 +220,31 @@ public class PostServiceImpl implements PostService {
         return withCurrentUserState(matchingPosts, currentUserId);
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    @PreAuthorize("hasRole('USER')")
+    public List<SinglePostDto> getExplorePosts() {
+        Long currentUserId = userLookupService.getCurrentUser().getId();
+        LocalDateTime now = LocalDateTime.now();
+
+        List<SinglePostDto> recommendations = postRepository
+                .findExploreCandidates(currentUserId)
+                .stream()
+                .map(post -> new RankedPost(post, recommendationScore(post, now)))
+                .sorted(Comparator
+                        .comparingLong(RankedPost::score)
+                        .reversed()
+                        .thenComparing(
+                                rankedPost -> rankedPost.post().getCreatedAt(),
+                                Comparator.reverseOrder()
+                        ))
+                .limit(EXPLORE_RESULT_LIMIT)
+                .map(RankedPost::post)
+                .toList();
+
+        return withCurrentUserState(recommendations, currentUserId);
+    }
+
     private List<SinglePostDto> withCurrentUserState(List<SinglePostDto> posts, Long currentUserId) {
         posts.forEach(post -> withCurrentUserState(post, currentUserId));
         return posts;
@@ -243,5 +274,29 @@ public class PostServiceImpl implements PostService {
                 postId,
                 postBookmarkRepository.existsByPostIdAndUserId(postId, currentUserId)
         );
+    }
+
+    private long recommendationScore(SinglePostDto post, LocalDateTime now) {
+        long engagementScore =
+                postLikeRepository.countByPostId(post.getId()) * 3
+                + postCommentRepository.countByPostId(post.getId()) * 2
+                + postBookmarkRepository.countByPostId(post.getId()) * 2;
+
+        long ageInDays = Math.max(0, Duration.between(post.getCreatedAt(), now).toDays());
+        long recencyBonus;
+        if (ageInDays < 1) {
+            recencyBonus = 6;
+        } else if (ageInDays < 7) {
+            recencyBonus = 3;
+        } else if (ageInDays < 30) {
+            recencyBonus = 1;
+        } else {
+            recencyBonus = 0;
+        }
+
+        return engagementScore + recencyBonus;
+    }
+
+    private record RankedPost(SinglePostDto post, long score) {
     }
 }

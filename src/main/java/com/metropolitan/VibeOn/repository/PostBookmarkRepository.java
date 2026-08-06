@@ -11,4 +11,6 @@ public interface PostBookmarkRepository extends JpaRepository<PostBookmark, Long
     boolean existsByPostIdAndUserId(Long postId, Long userId);
 
     Optional<PostBookmark> findByPostIdAndUserId(Long postId, Long userId);
+
+    long countByPostId(Long postId);
 }

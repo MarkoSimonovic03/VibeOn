@@ -9,4 +9,6 @@ import java.util.List;
 @Repository
 public interface PostCommentRepository extends JpaRepository<PostComment, Long> {
     List<PostComment> findAllByPostIdOrderByCreatedAtAsc(Long postId);
+
+    long countByPostId(Long postId);
 }

@@ -113,4 +113,26 @@ public interface PostRepository extends JpaRepository<Post, Long> {
                 ORDER BY p.createdAt DESC
             """)
     List<SinglePostDto> findHashtagCandidates(@Param("hashtag") String hashtag);
+
+    @Query("""
+                SELECT new com.metropolitan.VibeOn.dto.SinglePostDto(
+                    p.id,
+                    p.imageUrl,
+                    p.createdAt,
+                    p.description,
+                    u.id,
+                    u.username,
+                    u.profileImageUrl
+                )
+                FROM Post p
+                JOIN p.user u
+                WHERE u.id != :currentUserId
+                  AND NOT EXISTS (
+                    SELECT f.id
+                    FROM Follow f
+                    WHERE f.follower.id = :currentUserId
+                      AND f.followee.id = u.id
+                  )
+            """)
+    List<SinglePostDto> findExploreCandidates(@Param("currentUserId") Long currentUserId);
 }

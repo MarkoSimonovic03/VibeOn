@@ -35,4 +35,6 @@ public interface PostService {
     PostBookmarkResponseDto removeBookmark(Long id);
 
     List<SinglePostDto> searchPostsByHashtag(String hashtag);
+
+    List<SinglePostDto> getExplorePosts();
 }
