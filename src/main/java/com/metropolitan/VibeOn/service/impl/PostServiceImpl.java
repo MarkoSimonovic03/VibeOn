@@ -1,10 +1,13 @@
 package com.metropolitan.VibeOn.service.impl;
 
+import com.metropolitan.VibeOn.dto.PostBookmarkResponseDto;
 import com.metropolitan.VibeOn.dto.PostLikeResponseDto;
 import com.metropolitan.VibeOn.dto.SinglePostDto;
 import com.metropolitan.VibeOn.entity.Post;
+import com.metropolitan.VibeOn.entity.PostBookmark;
 import com.metropolitan.VibeOn.entity.PostLike;
 import com.metropolitan.VibeOn.entity.User;
+import com.metropolitan.VibeOn.repository.PostBookmarkRepository;
 import com.metropolitan.VibeOn.repository.PostLikeRepository;
 import com.metropolitan.VibeOn.repository.PostRepository;
 import com.metropolitan.VibeOn.service.ImageStorageService;
@@ -27,6 +30,7 @@ public class PostServiceImpl implements PostService {
     private final UserLookupService userLookupService;
     private final ImageStorageService imageStorageService;
     private final PostLikeRepository postLikeRepository;
+    private final PostBookmarkRepository postBookmarkRepository;
 
     @Override
     @Transactional
@@ -45,7 +49,7 @@ public class PostServiceImpl implements PostService {
 
         Post savedPost = postRepository.save(post);
 
-        return withLikeStatus(SinglePostDto.fromPost(savedPost), currentUser.getId());
+        return withCurrentUserState(SinglePostDto.fromPost(savedPost), currentUser.getId());
     }
 
     @Override
@@ -54,28 +58,28 @@ public class PostServiceImpl implements PostService {
         User currentUser = userLookupService.getCurrentUser();
         SinglePostDto post = postRepository.findPostByIdAsDto(id)
                 .orElseThrow(() -> new RuntimeException("Post not found."));
-        return withLikeStatus(post, currentUser.getId());
+        return withCurrentUserState(post, currentUser.getId());
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<SinglePostDto> getAllPosts() {
         Long currentUserId = userLookupService.getCurrentUser().getId();
-        return withLikeStatus(postRepository.findAllPostsAsDto(), currentUserId);
+        return withCurrentUserState(postRepository.findAllPostsAsDto(), currentUserId);
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<SinglePostDto> getPostsByUsername(String username) {
         Long currentUserId = userLookupService.getCurrentUser().getId();
-        return withLikeStatus(postRepository.findAllPostsByUsernameAsDto(username), currentUserId);
+        return withCurrentUserState(postRepository.findAllPostsByUsernameAsDto(username), currentUserId);
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<SinglePostDto> getAllPostsByFolloweeUser() {
         Long currentUserId = userLookupService.getCurrentUser().getId();
-        return withLikeStatus(postRepository.findAllPostsByFolloweeUserAsDto(currentUserId), currentUserId);
+        return withCurrentUserState(postRepository.findAllPostsByFolloweeUserAsDto(currentUserId), currentUserId);
     }
 
     @Override
@@ -93,7 +97,7 @@ public class PostServiceImpl implements PostService {
         post.setDescription(newDescription);
         postRepository.save(post);
 
-        return withLikeStatus(SinglePostDto.fromPost(post), currentUser.getId());
+        return withCurrentUserState(SinglePostDto.fromPost(post), currentUser.getId());
     }
 
     @Override
@@ -145,15 +149,61 @@ public class PostServiceImpl implements PostService {
         return getLikeStatus(id, currentUser.getId());
     }
 
-    private List<SinglePostDto> withLikeStatus(List<SinglePostDto> posts, Long currentUserId) {
-        posts.forEach(post -> withLikeStatus(post, currentUserId));
+    @Override
+    @Transactional(readOnly = true)
+    @PreAuthorize("hasRole('USER')")
+    public List<SinglePostDto> getBookmarkedPosts() {
+        Long currentUserId = userLookupService.getCurrentUser().getId();
+        return withCurrentUserState(
+                postRepository.findAllBookmarkedPostsAsDto(currentUserId),
+                currentUserId
+        );
+    }
+
+    @Override
+    @Transactional
+    @PreAuthorize("hasRole('USER')")
+    public PostBookmarkResponseDto bookmarkPost(Long id) {
+        User currentUser = userLookupService.getCurrentUser();
+        Post post = postRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Post not found."));
+
+        if (!postBookmarkRepository.existsByPostIdAndUserId(id, currentUser.getId())) {
+            PostBookmark bookmark = new PostBookmark();
+            bookmark.setPost(post);
+            bookmark.setUser(currentUser);
+            postBookmarkRepository.save(bookmark);
+        }
+
+        return getBookmarkStatus(id, currentUser.getId());
+    }
+
+    @Override
+    @Transactional
+    @PreAuthorize("hasRole('USER')")
+    public PostBookmarkResponseDto removeBookmark(Long id) {
+        User currentUser = userLookupService.getCurrentUser();
+        postRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Post not found."));
+
+        postBookmarkRepository.findByPostIdAndUserId(id, currentUser.getId())
+                .ifPresent(postBookmarkRepository::delete);
+
+        return getBookmarkStatus(id, currentUser.getId());
+    }
+
+    private List<SinglePostDto> withCurrentUserState(List<SinglePostDto> posts, Long currentUserId) {
+        posts.forEach(post -> withCurrentUserState(post, currentUserId));
         return posts;
     }
 
-    private SinglePostDto withLikeStatus(SinglePostDto post, Long currentUserId) {
+    private SinglePostDto withCurrentUserState(SinglePostDto post, Long currentUserId) {
         post.setLikeCount(postLikeRepository.countByPostId(post.getId()));
         post.setLikedByCurrentUser(
                 postLikeRepository.existsByPostIdAndUserId(post.getId(), currentUserId)
+        );
+        post.setBookmarkedByCurrentUser(
+                postBookmarkRepository.existsByPostIdAndUserId(post.getId(), currentUserId)
         );
         return post;
     }
@@ -163,6 +213,13 @@ public class PostServiceImpl implements PostService {
                 postId,
                 postLikeRepository.countByPostId(postId),
                 postLikeRepository.existsByPostIdAndUserId(postId, currentUserId)
+        );
+    }
+
+    private PostBookmarkResponseDto getBookmarkStatus(Long postId, Long currentUserId) {
+        return new PostBookmarkResponseDto(
+                postId,
+                postBookmarkRepository.existsByPostIdAndUserId(postId, currentUserId)
         );
     }
 }

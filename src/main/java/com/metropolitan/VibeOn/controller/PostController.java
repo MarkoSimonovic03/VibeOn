@@ -2,6 +2,7 @@ package com.metropolitan.VibeOn.controller;
 
 import com.metropolitan.VibeOn.dto.CreatePostDto;
 import com.metropolitan.VibeOn.dto.PostLikeResponseDto;
+import com.metropolitan.VibeOn.dto.PostBookmarkResponseDto;
 import com.metropolitan.VibeOn.dto.SinglePostDto;
 import com.metropolitan.VibeOn.dto.UpdatePostDto;
 import com.metropolitan.VibeOn.service.PostService;
@@ -15,6 +16,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.nio.file.AccessDeniedException;
+import java.util.List;
 @RestController
 @RequiredArgsConstructor
 @Validated
@@ -119,6 +121,33 @@ public class PostController {
     public ResponseEntity<PostLikeResponseDto> unlikePost(@PathVariable @Positive Long id) {
         try {
             return ResponseEntity.ok(postService.unlikePost(id));
+        } catch (org.springframework.security.access.AccessDeniedException exception) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        } catch (RuntimeException exception) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    @GetMapping("/bookmarks")
+    public ResponseEntity<List<SinglePostDto>> getBookmarkedPosts() {
+        return ResponseEntity.ok(postService.getBookmarkedPosts());
+    }
+
+    @PostMapping("/{id}/bookmarks")
+    public ResponseEntity<PostBookmarkResponseDto> bookmarkPost(@PathVariable @Positive Long id) {
+        try {
+            return ResponseEntity.ok(postService.bookmarkPost(id));
+        } catch (org.springframework.security.access.AccessDeniedException exception) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        } catch (RuntimeException exception) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    @DeleteMapping("/{id}/bookmarks")
+    public ResponseEntity<PostBookmarkResponseDto> removeBookmark(@PathVariable @Positive Long id) {
+        try {
+            return ResponseEntity.ok(postService.removeBookmark(id));
         } catch (org.springframework.security.access.AccessDeniedException exception) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         } catch (RuntimeException exception) {

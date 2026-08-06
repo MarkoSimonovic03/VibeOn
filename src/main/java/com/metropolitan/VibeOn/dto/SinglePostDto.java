@@ -19,6 +19,7 @@ public class SinglePostDto {
     private String profileImageUrl;
     private long likeCount;
     private boolean likedByCurrentUser;
+    private boolean bookmarkedByCurrentUser;
 
     public SinglePostDto(
             Long id,

@@ -78,4 +78,22 @@ public interface PostRepository extends JpaRepository<Post, Long> {
                 ORDER BY p.createdAt DESC
             """)
     List<SinglePostDto> findAllPostsByFolloweeUserAsDto(@Param("followerId") Long followerId);
+
+    @Query("""
+                SELECT new com.metropolitan.VibeOn.dto.SinglePostDto(
+                    p.id,
+                    p.imageUrl,
+                    p.createdAt,
+                    p.description,
+                    u.id,
+                    u.username,
+                    u.profileImageUrl
+                )
+                FROM PostBookmark b
+                JOIN b.post p
+                JOIN p.user u
+                WHERE b.user.id = :userId
+                ORDER BY b.id DESC
+            """)
+    List<SinglePostDto> findAllBookmarkedPostsAsDto(@Param("userId") Long userId);
 }

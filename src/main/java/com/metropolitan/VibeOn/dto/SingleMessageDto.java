@@ -17,13 +17,15 @@ public class SingleMessageDto {
     private String username;
     private String content;
     private LocalDateTime createdAt;
+    private SharedPostDto sharedPost;
 
     public static SingleMessageDto fromMessage(Message message) {
         return new SingleMessageDto(
                 message.getId(),
                 message.getUser().getUsername(),
                 message.getContent(),
-                message.getCreatedAt()
+                message.getCreatedAt(),
+                SharedPostDto.fromPost(message.getSharedPost())
         );
     }
 }

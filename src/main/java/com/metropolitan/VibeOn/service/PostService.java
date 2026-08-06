@@ -1,6 +1,7 @@
 package com.metropolitan.VibeOn.service;
 
 import com.metropolitan.VibeOn.dto.PostLikeResponseDto;
+import com.metropolitan.VibeOn.dto.PostBookmarkResponseDto;
 import com.metropolitan.VibeOn.dto.SinglePostDto;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -26,4 +27,10 @@ public interface PostService {
     PostLikeResponseDto likePost(Long id);
 
     PostLikeResponseDto unlikePost(Long id);
+
+    List<SinglePostDto> getBookmarkedPosts();
+
+    PostBookmarkResponseDto bookmarkPost(Long id);
+
+    PostBookmarkResponseDto removeBookmark(Long id);
 }

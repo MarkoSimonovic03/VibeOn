@@ -8,6 +8,8 @@ import java.util.List;
 public interface ChatService {
     SingleMessageDto sendMessage(String username, Long chatId, String content);
 
+    SingleMessageDto sharePost(Long chatId, Long postId);
+
     List<SingleChatDto> getChatsForCurrentUser();
 
     FullChatDto getChat(String username);
