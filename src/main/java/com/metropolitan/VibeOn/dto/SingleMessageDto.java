@@ -1,7 +1,6 @@
 package com.metropolitan.VibeOn.dto;
 
 import com.metropolitan.VibeOn.entity.Message;
-import com.metropolitan.VibeOn.entity.Post;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;

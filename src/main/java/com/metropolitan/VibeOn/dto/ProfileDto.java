@@ -7,7 +7,6 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.LocalDate;
-import java.util.List;
 
 @Setter
 @Getter
@@ -19,10 +18,7 @@ public class ProfileDto {
     private String name;
     private String lastName;
     private LocalDate createdAt;
-    private String email;
     private String profileImageUrl;
-    private LocalDate birthDate;
-    private boolean gender;
     private Boolean isFollowing;
 
     public static ProfileDto fromUser(User user, Boolean isFollowing) {
@@ -32,10 +28,7 @@ public class ProfileDto {
                 user.getName(),
                 user.getLastName(),
                 user.getCreatedAt(),
-                user.getEmail(),
                 user.getProfileImageUrl(),
-                user.getBirthDate(),
-                user.isGender(),
                 isFollowing
         );
     }

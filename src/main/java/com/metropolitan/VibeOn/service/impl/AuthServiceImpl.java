@@ -1,7 +1,6 @@
 package com.metropolitan.VibeOn.service.impl;
 
 import com.metropolitan.VibeOn.dto.*;
-import com.metropolitan.VibeOn.entity.Follow;
 import com.metropolitan.VibeOn.entity.Role;
 import com.metropolitan.VibeOn.entity.User;
 import com.metropolitan.VibeOn.repository.FollowRepository;
@@ -9,8 +8,8 @@ import com.metropolitan.VibeOn.repository.RoleRepository;
 import com.metropolitan.VibeOn.repository.UserRepository;
 import com.metropolitan.VibeOn.security.JwtTokenProvider;
 import com.metropolitan.VibeOn.service.AuthService;
-import com.metropolitan.VibeOn.service.FollowService;
-import com.metropolitan.VibeOn.service.util.UtilService;
+import com.metropolitan.VibeOn.service.ImageStorageService;
+import com.metropolitan.VibeOn.service.UserLookupService;
 import lombok.AllArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -23,9 +22,6 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 
 @Service
@@ -38,8 +34,8 @@ public class AuthServiceImpl implements AuthService {
     private final FollowRepository followRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
-    private final UtilService utilService;
-
+    private final UserLookupService userLookupService;
+    private final ImageStorageService imageStorageService;
 
     @Override
     public String login(LoginDto loginDto) {
@@ -48,18 +44,22 @@ public class AuthServiceImpl implements AuthService {
 
         SecurityContextHolder.getContext().setAuthentication(authentication);
 
-        String token = jwtTokenProvider.generateToken(authentication);
-
-        return token;
+        return jwtTokenProvider.generateToken(authentication);
     }
 
     @Override
     public void register(MultipartFile image, RegisterDto registerDto) throws IOException {
-        if (userRepository.existsByUsername(registerDto.getUsername()))
+        if (userRepository.existsByUsername(registerDto.getUsername())) {
             throw new RuntimeException("Username is already taken!");
+        }
 
-        if (userRepository.existsByEmail(registerDto.getEmail()))
+        if (userRepository.existsByEmail(registerDto.getEmail())) {
             throw new RuntimeException("Email is already taken!");
+        }
+
+        if (image == null || image.isEmpty()) {
+            throw new IllegalArgumentException("Image error");
+        }
 
         User user = new User();
         user.setUsername(registerDto.getUsername());
@@ -71,9 +71,7 @@ public class AuthServiceImpl implements AuthService {
         user.setGender(registerDto.isGender());
         user.setCreatedAt(LocalDate.now());
 
-        if (image != null && !image.isEmpty())
-            user.setProfileImageUrl(utilService.saveImage(image));
-        else throw new IllegalArgumentException("Image error");
+        user.setProfileImageUrl(imageStorageService.save(image));
 
         Role userRole = roleRepository.findByName("ROLE_USER")
                 .orElseThrow(() -> new RuntimeException("ROLE_USER not found"));
@@ -83,19 +81,20 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    public HeaderUserDto HeaderUserInfo() {
-        User curentUser = utilService.getCurrentUser();
-        return new HeaderUserDto(curentUser.getUsername(), curentUser.getProfileImageUrl());
+    public HeaderUserDto getHeaderUserInfo() {
+        User currentUser = userLookupService.getCurrentUser();
+        return new HeaderUserDto(currentUser.getUsername(), currentUser.getProfileImageUrl());
     }
 
     @Override
     @Transactional(readOnly = true)
     public ProfileDto getProfileInfo(String username) {
-        User currentUser = utilService.getCurrentUser();
-        User otherUser = utilService.getUserByUsername(username);
+        User currentUser = userLookupService.getCurrentUser();
+        User otherUser = userLookupService.getByUsername(username);
 
-        Optional<Follow> follow = followRepository.findByFollowerIdAndFolloweeId(currentUser.getId(),otherUser.getId());
-        Boolean isFollowing = follow.isPresent();
+        boolean isFollowing = followRepository
+                .findByFollowerIdAndFolloweeId(currentUser.getId(), otherUser.getId())
+                .isPresent();
 
         return ProfileDto.fromUser(otherUser, isFollowing);
     }

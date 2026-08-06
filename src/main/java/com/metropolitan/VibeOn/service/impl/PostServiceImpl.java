@@ -1,32 +1,27 @@
 package com.metropolitan.VibeOn.service.impl;
 
-import com.metropolitan.VibeOn.dto.ProfileDto;
 import com.metropolitan.VibeOn.dto.SinglePostDto;
-import com.metropolitan.VibeOn.entity.Follow;
 import com.metropolitan.VibeOn.entity.Post;
 import com.metropolitan.VibeOn.entity.User;
-import com.metropolitan.VibeOn.repository.FollowRepository;
 import com.metropolitan.VibeOn.repository.PostRepository;
+import com.metropolitan.VibeOn.service.ImageStorageService;
 import com.metropolitan.VibeOn.service.PostService;
-import com.metropolitan.VibeOn.service.util.UtilService;
+import com.metropolitan.VibeOn.service.UserLookupService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 import java.io.IOException;
-import java.nio.file.*;
+import java.nio.file.AccessDeniedException;
 import java.util.List;
 import java.time.LocalDateTime;
-import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
 public class PostServiceImpl implements PostService {
     private final PostRepository postRepository;
-    private final UtilService utilService;
-    private final FollowRepository followRepository;
+    private final UserLookupService userLookupService;
+    private final ImageStorageService imageStorageService;
 
     @Override
     @Transactional
@@ -35,13 +30,13 @@ public class PostServiceImpl implements PostService {
             throw new IllegalArgumentException("Image is missing or empty");
         }
 
-        User currentUser = utilService.getCurrentUser();
+        User currentUser = userLookupService.getCurrentUser();
 
         Post post = new Post();
         post.setDescription(description);
         post.setUser(currentUser);
         post.setCreatedAt(LocalDateTime.now());
-        post.setImageUrl(utilService.saveImage(image));
+        post.setImageUrl(imageStorageService.save(image));
 
         Post savedPost = postRepository.save(post);
 
@@ -70,13 +65,13 @@ public class PostServiceImpl implements PostService {
     @Override
     @Transactional(readOnly = true)
     public List<SinglePostDto> getAllPostsByFolloweeUser() {
-        return postRepository.findAllPostsByFolloweeUserAsDto(utilService.getCurrentUser().getId());
+        return postRepository.findAllPostsByFolloweeUserAsDto(userLookupService.getCurrentUser().getId());
     }
 
     @Override
     @Transactional
     public SinglePostDto updatePost(Long id, String newDescription) throws AccessDeniedException {
-        User currentUser = utilService.getCurrentUser();
+        User currentUser = userLookupService.getCurrentUser();
 
         Post post = postRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Post not found."));
@@ -94,7 +89,7 @@ public class PostServiceImpl implements PostService {
     @Override
     @Transactional
     public void softDeletePost(Long id) throws AccessDeniedException {
-        User currentUser = utilService.getCurrentUser();
+        User currentUser = userLookupService.getCurrentUser();
 
         Post post = postRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Post not found."));

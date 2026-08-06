@@ -79,16 +79,3 @@ public interface PostRepository extends JpaRepository<Post, Long> {
             """)
     List<SinglePostDto> findAllPostsByFolloweeUserAsDto(@Param("followerId") Long followerId);
 }
-
-//    List<Post> findAllByUserIdOrderByCreatedAtDesc(Long userId);
-//
-//    List<Post> findAllByOrderByCreatedAtDesc();
-//
-//    @Query("""
-//            SELECT p
-//            FROM Post p
-//            JOIN Follow f ON f.followee.id = p.user.id
-//            WHERE f.follower.id = :followerId
-//            ORDER BY p.createdAt DESC
-//            """)
-//    List<Post> findAllPostsByFolloweeUser(@Param("followerId") Long followeeId);

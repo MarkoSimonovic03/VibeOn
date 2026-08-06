@@ -1,8 +1,6 @@
 package com.metropolitan.VibeOn.service;
 
-import com.metropolitan.VibeOn.dto.ProfileDto;
 import com.metropolitan.VibeOn.dto.SinglePostDto;
-import com.metropolitan.VibeOn.entity.Post;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;

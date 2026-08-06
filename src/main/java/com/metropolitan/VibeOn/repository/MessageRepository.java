@@ -11,8 +11,6 @@ import java.util.List;
 
 @Repository
 public interface MessageRepository extends JpaRepository<Message, Long> {
-    //List<Message> findByChatIdOrderByCreatedAtDesc(Long chatId);
-
     @Query("""
                 SELECT new com.metropolitan.VibeOn.dto.SingleMessageDto(
                     m.id,

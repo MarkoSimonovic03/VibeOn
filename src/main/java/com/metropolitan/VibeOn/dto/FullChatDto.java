@@ -1,13 +1,10 @@
 package com.metropolitan.VibeOn.dto;
 
-import com.metropolitan.VibeOn.entity.Chat;
-import com.metropolitan.VibeOn.entity.Post;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.time.LocalDateTime;
 import java.util.List;
 
 @Getter

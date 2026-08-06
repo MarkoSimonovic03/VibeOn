@@ -13,7 +13,7 @@ public interface AuthService {
 
     void register(MultipartFile image, RegisterDto registerDto) throws IOException;
 
-    HeaderUserDto HeaderUserInfo();
+    HeaderUserDto getHeaderUserInfo();
 
     ProfileDto getProfileInfo(String username);
 }

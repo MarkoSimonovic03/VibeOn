@@ -12,8 +12,7 @@ import java.util.Optional;
 
 @Repository
 public interface ChatRepository extends JpaRepository<Chat, Long> {
-//    @Query("SELECT c FROM Chat c JOIN c.users u WHERE u.id = :userId ORDER BY c.lastMessage.createdAt DESC")
-//    List<Chat> findAllByUserIdOrderByLastMessage(@Param("userId") Long userId);
+    boolean existsByIdAndUsersUsername(Long id, String username);
 
     @Query("SELECT c FROM Chat c JOIN c.users u1 JOIN c.users u2 WHERE u1.id = :user1Id AND u2.id = :user2Id AND SIZE(c.users) = 2")
     Optional<Chat> findChatBetweenUsers(

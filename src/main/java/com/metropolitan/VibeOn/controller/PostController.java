@@ -2,100 +2,104 @@ package com.metropolitan.VibeOn.controller;
 
 import com.metropolitan.VibeOn.dto.CreatePostDto;
 import com.metropolitan.VibeOn.dto.SinglePostDto;
-import com.metropolitan.VibeOn.entity.Post;
+import com.metropolitan.VibeOn.dto.UpdatePostDto;
 import com.metropolitan.VibeOn.service.PostService;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.nio.file.AccessDeniedException;
-import java.util.Map;
-
 @RestController
 @RequiredArgsConstructor
+@Validated
 @RequestMapping("/api/posts")
 public class PostController {
     private final PostService postService;
 
-    // Endpoint for creating new post
     @PostMapping()
-    private ResponseEntity<?> createPost(@RequestPart("image") MultipartFile image,
-                                         @RequestPart("post") CreatePostDto createPostDto) {
+    public ResponseEntity<?> createPost(@RequestPart("image") MultipartFile image,
+                                        @Valid @RequestPart("post") CreatePostDto createPostDto) {
         try {
             SinglePostDto createdPost = postService.createPost(image, createPostDto.getDescription());
             return ResponseEntity.status(HttpStatus.CREATED).body(createdPost);
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid data: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid post data.");
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An error occurred: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An unexpected error occurred.");
         }
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<?> getPostById(@PathVariable Long id) {
+    public ResponseEntity<?> getPostById(@PathVariable @Positive Long id) {
         try {
-            return ResponseEntity.ok().body(postService.getPostById(id));
+            return ResponseEntity.ok(postService.getPostById(id));
         } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Post not found.");
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An unexpected error occurred: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An unexpected error occurred.");
         }
     }
 
     @GetMapping("/user/{username}")
     public ResponseEntity<?> getPostsByUsername(@PathVariable String username) {
         try {
-            return ResponseEntity.ok().body(postService.getPostsByUsername(username));
+            return ResponseEntity.ok(postService.getPostsByUsername(username));
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An unexpected error occurred: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An unexpected error occurred.");
         }
     }
 
     @GetMapping()
     public ResponseEntity<?> getAllPosts() {
         try {
-            return ResponseEntity.ok().body(postService.getAllPosts());
+            return ResponseEntity.ok(postService.getAllPosts());
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An unexpected error occurred: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An unexpected error occurred.");
         }
     }
 
     @GetMapping("/followeePosts")
     public ResponseEntity<?> getAllPostsByFollowedUser() {
         try {
-            return ResponseEntity.ok().body(postService.getAllPostsByFolloweeUser());
+            return ResponseEntity.ok(postService.getAllPostsByFolloweeUser());
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An unexpected error occurred: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An unexpected error occurred.");
         }
     }
 
     @PatchMapping("/{id}")
-    public ResponseEntity<?> updatePost(@PathVariable Long id, @RequestBody Map<String,String> newDescription) {
+    public ResponseEntity<?> updatePost(
+            @PathVariable @Positive Long id,
+            @Valid @RequestBody UpdatePostDto request
+    ) {
         try {
-            SinglePostDto updatedPost = postService.updatePost(id, newDescription.get("newDescription"));
-            return ResponseEntity.ok().body(updatedPost);
+            SinglePostDto updatedPost = postService.updatePost(id, request.getNewDescription());
+            return ResponseEntity.ok(updatedPost);
         } catch (AccessDeniedException e) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Not authorized.");
         } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Post not found.");
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An unexpected error occurred: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An unexpected error occurred.");
         }
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<String> deletePost(@PathVariable Long id) {
+    public ResponseEntity<String> deletePost(@PathVariable @Positive Long id) {
         try {
             postService.softDeletePost(id);
             return ResponseEntity.noContent().build();
         } catch (AccessDeniedException e) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Not authorised" + e.getMessage());
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Not authorized.");
         } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Post not found.");
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An unexpected error occurred: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An unexpected error occurred.");
         }
     }
 }
