@@ -12,6 +12,8 @@ import java.util.List;
 public interface PostService {
     SinglePostDto createPost(MultipartFile image, String description) throws IOException;
 
+    SinglePostDto createPost(List<MultipartFile> images, String description) throws IOException;
+
     void softDeletePost(Long id) throws AccessDeniedException;
 
     SinglePostDto getPostById(Long id);

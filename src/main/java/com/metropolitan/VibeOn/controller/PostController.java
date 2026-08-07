@@ -26,10 +26,19 @@ public class PostController {
     private final PostService postService;
 
     @PostMapping()
-    public ResponseEntity<?> createPost(@RequestPart("image") MultipartFile image,
+    @PreAuthorize("hasRole('USER')")
+    public ResponseEntity<?> createPost(
+                                        @RequestPart(value = "images", required = false) List<MultipartFile> images,
+                                        @RequestPart(value = "image", required = false) MultipartFile legacyImage,
                                         @Valid @RequestPart("post") CreatePostDto createPostDto) {
         try {
-            SinglePostDto createdPost = postService.createPost(image, createPostDto.getDescription());
+            List<MultipartFile> uploadedImages = images == null
+                    ? new java.util.ArrayList<>()
+                    : new java.util.ArrayList<>(images);
+            if (legacyImage != null) {
+                uploadedImages.add(legacyImage);
+            }
+            SinglePostDto createdPost = postService.createPost(uploadedImages, createPostDto.getDescription());
             return ResponseEntity.status(HttpStatus.CREATED).body(createdPost);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid post data.");

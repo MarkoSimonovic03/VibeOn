@@ -25,6 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -77,6 +78,9 @@ class PostSharingFunctionalityIntegrationTest {
                 .andExpect(jsonPath("$.content").value("Shared a post"))
                 .andExpect(jsonPath("$.sharedPost.id").value(post.getId()))
                 .andExpect(jsonPath("$.sharedPost.imageUrl").value(post.getImageUrl()))
+                .andExpect(jsonPath("$.sharedPost.imageUrls.length()").value(2))
+                .andExpect(jsonPath("$.sharedPost.imageUrls[0]").value(post.getImageUrls().get(0)))
+                .andExpect(jsonPath("$.sharedPost.imageUrls[1]").value(post.getImageUrls().get(1)))
                 .andExpect(jsonPath("$.sharedPost.description").value(post.getDescription()))
                 .andExpect(jsonPath("$.sharedPost.username").value("bob"));
 
@@ -162,6 +166,10 @@ class PostSharingFunctionalityIntegrationTest {
         Post post = new Post();
         post.setUser(author);
         post.setImageUrl(author.getUsername() + "-" + System.nanoTime() + ".png");
+        post.setImageUrls(List.of(
+                post.getImageUrl(),
+                author.getUsername() + "-second-" + System.nanoTime() + ".png"
+        ));
         post.setDescription("Post to share");
         post.setCreatedAt(LocalDateTime.now());
         return postRepository.saveAndFlush(post);

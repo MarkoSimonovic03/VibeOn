@@ -6,6 +6,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.util.List;
+
 @Getter
 @Setter
 @NoArgsConstructor
@@ -13,6 +15,7 @@ import lombok.Setter;
 public class SharedPostDto {
     private Long id;
     private String imageUrl;
+    private List<String> imageUrls;
     private String description;
     private String username;
 
@@ -24,6 +27,7 @@ public class SharedPostDto {
         return new SharedPostDto(
                 post.getId(),
                 post.getImageUrl(),
+                post.getEffectiveImageUrls(),
                 post.getDescription(),
                 post.getUser().getUsername()
         );

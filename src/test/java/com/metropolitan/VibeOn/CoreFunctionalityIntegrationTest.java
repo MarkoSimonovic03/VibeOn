@@ -95,7 +95,10 @@ class CoreFunctionalityIntegrationTest {
 
     @BeforeEach
     void configureImageStorage() throws Exception {
-        when(imageStorageService.save(any())).thenReturn("stored-image.png");
+        when(imageStorageService.save(any())).thenAnswer(invocation -> {
+            org.springframework.web.multipart.MultipartFile image = invocation.getArgument(0);
+            return "stored-" + image.getOriginalFilename();
+        });
     }
 
     @AfterEach
@@ -217,6 +220,46 @@ class CoreFunctionalityIntegrationTest {
                         .header("Authorization", "Bearer " + token))
                 .andExpect(status().isBadRequest());
         assertThat(postRepository.count()).isZero();
+    }
+
+    @Test
+    void postCreationAcceptsMultipleImagesAndKeepsLegacyImageUrl() throws Exception {
+        User owner = createUser("owner", "owner@example.com", "password");
+        String token = loginToken(owner.getUsername(), "password");
+        MockMultipartFile firstImage = new MockMultipartFile(
+                "images", "first.png", MediaType.IMAGE_PNG_VALUE, new byte[]{1}
+        );
+        MockMultipartFile secondImage = new MockMultipartFile(
+                "images", "second.png", MediaType.IMAGE_PNG_VALUE, new byte[]{2}
+        );
+        MockMultipartFile postPart = new MockMultipartFile(
+                "post", "", MediaType.APPLICATION_JSON_VALUE,
+                "{\"description\":\"A gallery post\"}".getBytes()
+        );
+
+        String response = mockMvc.perform(multipart("/api/posts")
+                        .file(firstImage)
+                        .file(secondImage)
+                        .file(postPart)
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.imageUrl").value("stored-first.png"))
+                .andExpect(jsonPath("$.imageUrls.length()").value(2))
+                .andExpect(jsonPath("$.imageUrls[0]").value("stored-first.png"))
+                .andExpect(jsonPath("$.imageUrls[1]").value("stored-second.png"))
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        Long postId = objectMapper.readTree(response).get("id").asLong();
+        entityManager.flush();
+        entityManager.clear();
+
+        mockMvc.perform(get("/api/posts/{id}", postId)
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.imageUrl").value("stored-first.png"))
+                .andExpect(jsonPath("$.imageUrls.length()").value(2));
     }
 
     @Test

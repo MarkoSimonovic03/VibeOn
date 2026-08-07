@@ -5,6 +5,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Getter
 @Setter
@@ -12,6 +14,7 @@ import java.time.LocalDateTime;
 public class SinglePostDto {
     private Long id;
     private String imageUrl;
+    private List<String> imageUrls = new ArrayList<>();
     private LocalDateTime createdAt;
     private String description;
     private Long userId;
@@ -32,6 +35,7 @@ public class SinglePostDto {
     ) {
         this.id = id;
         this.imageUrl = imageUrl;
+        this.imageUrls = imageUrl == null ? new ArrayList<>() : new ArrayList<>(List.of(imageUrl));
         this.createdAt = createdAt;
         this.description = description;
         this.userId = userId;
@@ -40,7 +44,7 @@ public class SinglePostDto {
     }
 
     public static SinglePostDto fromPost(Post post) {
-        return new SinglePostDto(
+        SinglePostDto dto = new SinglePostDto(
                 post.getId(),
                 post.getImageUrl(),
                 post.getCreatedAt(),
@@ -49,5 +53,7 @@ public class SinglePostDto {
                 post.getUser().getUsername(),
                 post.getUser().getProfileImageUrl()
         );
+        dto.setImageUrls(post.getEffectiveImageUrls());
+        return dto;
     }
 }

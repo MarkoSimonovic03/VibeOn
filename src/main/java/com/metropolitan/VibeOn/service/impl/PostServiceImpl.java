@@ -32,6 +32,7 @@ import java.time.Duration;
 @RequiredArgsConstructor
 public class PostServiceImpl implements PostService {
     private static final int EXPLORE_RESULT_LIMIT = 30;
+    private static final int MAX_IMAGES_PER_POST = 10;
 
     private final PostRepository postRepository;
     private final UserLookupService userLookupService;
@@ -43,17 +44,31 @@ public class PostServiceImpl implements PostService {
     @Override
     @Transactional
     public SinglePostDto createPost(MultipartFile image, String description) throws IOException {
-        if (image == null || image.isEmpty()) {
-            throw new IllegalArgumentException("Image is missing or empty");
-        }
+        return createPost(image == null ? List.of() : List.of(image), description);
+    }
 
+    @Override
+    @Transactional
+    @PreAuthorize("hasRole('USER')")
+    public SinglePostDto createPost(List<MultipartFile> images, String description) throws IOException {
+        if (images == null || images.isEmpty() || images.stream().anyMatch(image -> image == null || image.isEmpty())) {
+            throw new IllegalArgumentException("At least one non-empty image is required");
+        }
+        if (images.size() > MAX_IMAGES_PER_POST) {
+            throw new IllegalArgumentException("A post can contain at most " + MAX_IMAGES_PER_POST + " images");
+        }
         User currentUser = userLookupService.getCurrentUser();
+        List<String> storedImages = new java.util.ArrayList<>();
+        for (MultipartFile image : images) {
+            storedImages.add(imageStorageService.save(image));
+        }
 
         Post post = new Post();
         post.setDescription(description);
         post.setUser(currentUser);
         post.setCreatedAt(LocalDateTime.now());
-        post.setImageUrl(imageStorageService.save(image));
+        post.setImageUrl(storedImages.get(0));
+        post.setImageUrls(storedImages);
 
         Post savedPost = postRepository.save(post);
 
@@ -251,6 +266,8 @@ public class PostServiceImpl implements PostService {
     }
 
     private SinglePostDto withCurrentUserState(SinglePostDto post, Long currentUserId) {
+        postRepository.findById(post.getId())
+                .ifPresent(entity -> post.setImageUrls(entity.getEffectiveImageUrls()));
         post.setLikeCount(postLikeRepository.countByPostId(post.getId()));
         post.setLikedByCurrentUser(
                 postLikeRepository.existsByPostIdAndUserId(post.getId(), currentUserId)
