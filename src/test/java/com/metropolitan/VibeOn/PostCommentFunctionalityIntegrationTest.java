@@ -65,19 +65,26 @@ class PostCommentFunctionalityIntegrationTest {
         mockMvc.perform(post("/api/posts/{postId}/comments", post.getId())
                         .with(user(commenter.getUsername()).roles("USER"))
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(commentJson("  A useful comment  ")))
+                        .content(commentJson("  A useful comment for @author and @missing-user #help  ")))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.postId").value(post.getId()))
                 .andExpect(jsonPath("$.username").value("commenter"))
                 .andExpect(jsonPath("$.profileImageUrl").value("commenter.png"))
-                .andExpect(jsonPath("$.content").value("A useful comment"))
+                .andExpect(jsonPath("$.content").value(
+                        "A useful comment for @author and @missing-user #help"
+                ))
+                .andExpect(jsonPath("$.mentionedUsernames.length()").value(1))
+                .andExpect(jsonPath("$.mentionedUsernames[0]").value("author"))
                 .andExpect(jsonPath("$.createdAt").isNotEmpty());
 
         mockMvc.perform(get("/api/posts/{postId}/comments", post.getId())
                         .with(user(author.getUsername()).roles("USER")))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].username").value("commenter"))
-                .andExpect(jsonPath("$[0].content").value("A useful comment"));
+                .andExpect(jsonPath("$[0].content").value(
+                        "A useful comment for @author and @missing-user #help"
+                ))
+                .andExpect(jsonPath("$[0].mentionedUsernames[0]").value("author"));
     }
 
     @Test

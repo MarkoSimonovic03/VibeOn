@@ -23,6 +23,7 @@ public class SinglePostDto {
     private long likeCount;
     private boolean likedByCurrentUser;
     private boolean bookmarkedByCurrentUser;
+    private List<String> mentionedUsernames = new ArrayList<>();
 
     public SinglePostDto(
             Long id,

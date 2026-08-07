@@ -174,8 +174,12 @@ class CoreFunctionalityIntegrationTest {
         User other = createUser("other", "other@example.com", "password");
 
         authenticateAs(owner);
-        SinglePostDto created = postService.createPost(imagePart(), "Original description");
-        assertThat(created.getDescription()).isEqualTo("Original description");
+        SinglePostDto created = postService.createPost(
+                imagePart(),
+                "Original description for @other and @missing-user #project"
+        );
+        assertThat(created.getDescription()).contains("@other", "#project");
+        assertThat(created.getMentionedUsernames()).containsExactly("other");
         assertThat(postRepository.findPostByIdAsDto(created.getId())).isPresent();
 
         authenticateAs(other);
@@ -185,8 +189,12 @@ class CoreFunctionalityIntegrationTest {
                 .isInstanceOf(AccessDeniedException.class);
 
         authenticateAs(owner);
-        SinglePostDto updated = postService.updatePost(created.getId(), "Updated description");
-        assertThat(updated.getDescription()).isEqualTo("Updated description");
+        SinglePostDto updated = postService.updatePost(
+                created.getId(),
+                "Updated description mentioning @owner"
+        );
+        assertThat(updated.getDescription()).isEqualTo("Updated description mentioning @owner");
+        assertThat(updated.getMentionedUsernames()).containsExactly("owner");
 
         postService.softDeletePost(created.getId());
         postRepository.flush();

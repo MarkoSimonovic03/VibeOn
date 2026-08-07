@@ -12,6 +12,7 @@ import com.metropolitan.VibeOn.repository.PostCommentRepository;
 import com.metropolitan.VibeOn.repository.PostLikeRepository;
 import com.metropolitan.VibeOn.repository.PostRepository;
 import com.metropolitan.VibeOn.service.ImageStorageService;
+import com.metropolitan.VibeOn.service.MentionService;
 import com.metropolitan.VibeOn.service.PostService;
 import com.metropolitan.VibeOn.service.UserLookupService;
 import lombok.RequiredArgsConstructor;
@@ -40,6 +41,7 @@ public class PostServiceImpl implements PostService {
     private final PostLikeRepository postLikeRepository;
     private final PostBookmarkRepository postBookmarkRepository;
     private final PostCommentRepository postCommentRepository;
+    private final MentionService mentionService;
 
     @Override
     @Transactional
@@ -268,6 +270,7 @@ public class PostServiceImpl implements PostService {
     private SinglePostDto withCurrentUserState(SinglePostDto post, Long currentUserId) {
         postRepository.findById(post.getId())
                 .ifPresent(entity -> post.setImageUrls(entity.getEffectiveImageUrls()));
+        post.setMentionedUsernames(mentionService.findValidUsernames(post.getDescription()));
         post.setLikeCount(postLikeRepository.countByPostId(post.getId()));
         post.setLikedByCurrentUser(
                 postLikeRepository.existsByPostIdAndUserId(post.getId(), currentUserId)

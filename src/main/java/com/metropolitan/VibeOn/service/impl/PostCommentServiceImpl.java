@@ -8,6 +8,7 @@ import com.metropolitan.VibeOn.exception.PostCommentNotFoundException;
 import com.metropolitan.VibeOn.repository.PostCommentRepository;
 import com.metropolitan.VibeOn.repository.PostRepository;
 import com.metropolitan.VibeOn.service.PostCommentService;
+import com.metropolitan.VibeOn.service.MentionService;
 import com.metropolitan.VibeOn.service.UserLookupService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.AccessDeniedException;
@@ -24,6 +25,7 @@ public class PostCommentServiceImpl implements PostCommentService {
     private final PostCommentRepository postCommentRepository;
     private final PostRepository postRepository;
     private final UserLookupService userLookupService;
+    private final MentionService mentionService;
 
     @Override
     @Transactional(readOnly = true)
@@ -32,7 +34,7 @@ public class PostCommentServiceImpl implements PostCommentService {
         requirePost(postId);
         return postCommentRepository.findAllByPostIdOrderByCreatedAtAsc(postId)
                 .stream()
-                .map(PostCommentDto::fromComment)
+                .map(this::toDto)
                 .toList();
     }
 
@@ -49,7 +51,7 @@ public class PostCommentServiceImpl implements PostCommentService {
         comment.setContent(content.trim());
         comment.setCreatedAt(LocalDateTime.now());
 
-        return PostCommentDto.fromComment(postCommentRepository.save(comment));
+        return toDto(postCommentRepository.save(comment));
     }
 
     @Override
@@ -72,5 +74,11 @@ public class PostCommentServiceImpl implements PostCommentService {
     private Post requirePost(Long postId) {
         return postRepository.findById(postId)
                 .orElseThrow(PostCommentNotFoundException::new);
+    }
+
+    private PostCommentDto toDto(PostComment comment) {
+        PostCommentDto dto = PostCommentDto.fromComment(comment);
+        dto.setMentionedUsernames(mentionService.findValidUsernames(comment.getContent()));
+        return dto;
     }
 }
