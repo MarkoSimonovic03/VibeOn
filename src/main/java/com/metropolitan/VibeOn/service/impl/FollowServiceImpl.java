@@ -9,6 +9,7 @@ import com.metropolitan.VibeOn.entity.User;
 import com.metropolitan.VibeOn.repository.FollowRepository;
 import com.metropolitan.VibeOn.repository.FollowRequestRepository;
 import com.metropolitan.VibeOn.service.FollowService;
+import com.metropolitan.VibeOn.service.NotificationService;
 import com.metropolitan.VibeOn.service.UserLookupService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.AccessDeniedException;
@@ -27,6 +28,7 @@ public class FollowServiceImpl implements FollowService {
     private final FollowRepository followRepository;
     private final FollowRequestRepository followRequestRepository;
     private final UserLookupService userLookupService;
+    private final NotificationService notificationService;
 
     @Override
     @Transactional
@@ -66,6 +68,7 @@ public class FollowServiceImpl implements FollowService {
         follow.setFollower(follower);
         follow.setFollowee(followee);
         followRepository.save(follow);
+        notificationService.notifyFollow(follower, followee);
         return new FollowActionDto(true, false);
     }
 
@@ -93,6 +96,7 @@ public class FollowServiceImpl implements FollowService {
             follow.setFollower(request.getRequester());
             follow.setFollowee(currentUser);
             followRepository.save(follow);
+            notificationService.notifyFollow(request.getRequester(), currentUser);
         }
         followRequestRepository.delete(request);
     }

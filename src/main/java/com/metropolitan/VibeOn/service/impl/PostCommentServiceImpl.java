@@ -9,6 +9,7 @@ import com.metropolitan.VibeOn.repository.PostCommentRepository;
 import com.metropolitan.VibeOn.repository.PostRepository;
 import com.metropolitan.VibeOn.service.PostCommentService;
 import com.metropolitan.VibeOn.service.MentionService;
+import com.metropolitan.VibeOn.service.NotificationService;
 import com.metropolitan.VibeOn.service.PostAccessService;
 import com.metropolitan.VibeOn.service.UserLookupService;
 import lombok.RequiredArgsConstructor;
@@ -28,6 +29,7 @@ public class PostCommentServiceImpl implements PostCommentService {
     private final UserLookupService userLookupService;
     private final MentionService mentionService;
     private final PostAccessService postAccessService;
+    private final NotificationService notificationService;
 
     @Override
     @Transactional(readOnly = true)
@@ -53,7 +55,15 @@ public class PostCommentServiceImpl implements PostCommentService {
         comment.setContent(content.trim());
         comment.setCreatedAt(LocalDateTime.now());
 
-        return toDto(postCommentRepository.save(comment));
+        PostComment savedComment = postCommentRepository.save(comment);
+        notificationService.notifyPostComment(currentUser, post, savedComment.getContent());
+        notificationService.notifyCommentMentions(
+                currentUser,
+                post,
+                savedComment.getContent(),
+                mentionService.findValidUsernames(savedComment.getContent())
+        );
+        return toDto(savedComment);
     }
 
     @Override

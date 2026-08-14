@@ -11,6 +11,7 @@ import com.metropolitan.VibeOn.repository.ChatRepository;
 import com.metropolitan.VibeOn.repository.MessageRepository;
 import com.metropolitan.VibeOn.repository.PostRepository;
 import com.metropolitan.VibeOn.service.ChatService;
+import com.metropolitan.VibeOn.service.NotificationService;
 import com.metropolitan.VibeOn.service.PostAccessService;
 import com.metropolitan.VibeOn.service.UserLookupService;
 import lombok.RequiredArgsConstructor;
@@ -31,6 +32,7 @@ public class ChatServiceImpl implements ChatService {
     private final PostRepository postRepository;
     private final UserLookupService userLookupService;
     private final PostAccessService postAccessService;
+    private final NotificationService notificationService;
 
     @Override
     @Transactional
@@ -46,6 +48,7 @@ public class ChatServiceImpl implements ChatService {
 
         Message savedMessage = messageRepository.save(message);
         chat.setLastMessage(savedMessage);
+        notificationService.notifyChatMessage(currentUser, chat, savedMessage.getContent());
 
         return SingleMessageDto.fromMessage(savedMessage);
     }
@@ -68,6 +71,7 @@ public class ChatServiceImpl implements ChatService {
 
         Message savedMessage = messageRepository.save(message);
         chat.setLastMessage(savedMessage);
+        notificationService.notifyChatMessage(currentUser, chat, savedMessage.getContent());
 
         return SingleMessageDto.fromMessage(savedMessage);
     }

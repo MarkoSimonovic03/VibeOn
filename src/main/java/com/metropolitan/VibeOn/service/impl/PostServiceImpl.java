@@ -13,6 +13,7 @@ import com.metropolitan.VibeOn.repository.PostLikeRepository;
 import com.metropolitan.VibeOn.repository.PostRepository;
 import com.metropolitan.VibeOn.service.ImageStorageService;
 import com.metropolitan.VibeOn.service.MentionService;
+import com.metropolitan.VibeOn.service.NotificationService;
 import com.metropolitan.VibeOn.service.PostAccessService;
 import com.metropolitan.VibeOn.service.PostService;
 import com.metropolitan.VibeOn.service.UserLookupService;
@@ -29,6 +30,7 @@ import java.util.Locale;
 import java.util.Comparator;
 import java.util.regex.Pattern;
 import java.time.Duration;
+import java.util.HashSet;
 
 @Service
 @RequiredArgsConstructor
@@ -44,6 +46,7 @@ public class PostServiceImpl implements PostService {
     private final PostCommentRepository postCommentRepository;
     private final MentionService mentionService;
     private final PostAccessService postAccessService;
+    private final NotificationService notificationService;
 
     @Override
     @Transactional
@@ -75,6 +78,11 @@ public class PostServiceImpl implements PostService {
         post.setImageUrls(storedImages);
 
         Post savedPost = postRepository.save(post);
+        notificationService.notifyPostMentions(
+                currentUser,
+                savedPost,
+                mentionService.findValidUsernames(savedPost.getDescription())
+        );
 
         return withCurrentUserState(SinglePostDto.fromPost(savedPost), currentUser.getId());
     }
@@ -131,8 +139,13 @@ public class PostServiceImpl implements PostService {
             throw new AccessDeniedException("You do not have permission to update this post.");
         }
 
+        var previousMentions = new HashSet<>(mentionService.findValidUsernames(post.getDescription()));
         post.setDescription(newDescription);
         postRepository.save(post);
+        List<String> newMentions = mentionService.findValidUsernames(newDescription).stream()
+                .filter(username -> !previousMentions.contains(username))
+                .toList();
+        notificationService.notifyPostMentions(currentUser, post, newMentions);
 
         return withCurrentUserState(SinglePostDto.fromPost(post), currentUser.getId());
     }
@@ -168,6 +181,7 @@ public class PostServiceImpl implements PostService {
             postLike.setPost(post);
             postLike.setUser(currentUser);
             postLikeRepository.save(postLike);
+            notificationService.notifyPostLike(currentUser, post);
         }
 
         return getLikeStatus(id, currentUser.getId());
