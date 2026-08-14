@@ -4,6 +4,7 @@ import com.metropolitan.VibeOn.dto.HeaderUserDto;
 import com.metropolitan.VibeOn.dto.LoginDto;
 import com.metropolitan.VibeOn.dto.ProfileDto;
 import com.metropolitan.VibeOn.dto.RegisterDto;
+import com.metropolitan.VibeOn.dto.UpdateProfileDto;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
@@ -16,4 +17,6 @@ public interface AuthService {
     HeaderUserDto getHeaderUserInfo();
 
     ProfileDto getProfileInfo(String username);
+
+    ProfileDto updateProfile(MultipartFile image, UpdateProfileDto updateProfileDto) throws IOException;
 }

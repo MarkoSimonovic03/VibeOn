@@ -3,6 +3,8 @@ package com.metropolitan.VibeOn.controller;
 import com.metropolitan.VibeOn.dto.JWTAuthResponse;
 import com.metropolitan.VibeOn.dto.LoginDto;
 import com.metropolitan.VibeOn.dto.RegisterDto;
+import com.metropolitan.VibeOn.dto.ProfileDto;
+import com.metropolitan.VibeOn.dto.UpdateProfileDto;
 import com.metropolitan.VibeOn.service.AuthService;
 import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
@@ -10,6 +12,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.security.access.prepost.PreAuthorize;
+
+import java.io.IOException;
 
 @AllArgsConstructor
 @RestController
@@ -63,5 +68,14 @@ public class AuthController {
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An unexpected error occurred.");
         }
+    }
+
+    @PatchMapping("/profile")
+    @PreAuthorize("hasRole('USER')")
+    public ResponseEntity<ProfileDto> updateProfile(
+            @RequestPart(value = "image", required = false) MultipartFile image,
+            @Valid @RequestPart("profile") UpdateProfileDto updateProfileDto
+    ) throws IOException {
+        return ResponseEntity.ok(authService.updateProfile(image, updateProfileDto));
     }
 }

@@ -7,6 +7,7 @@ import com.metropolitan.VibeOn.dto.LoginDto;
 import com.metropolitan.VibeOn.dto.RegisterDto;
 import com.metropolitan.VibeOn.dto.SingleMessageDto;
 import com.metropolitan.VibeOn.dto.SinglePostDto;
+import com.metropolitan.VibeOn.dto.UpdateProfileDto;
 import com.metropolitan.VibeOn.entity.Role;
 import com.metropolitan.VibeOn.entity.Follow;
 import com.metropolitan.VibeOn.entity.FollowRequest;
@@ -52,10 +53,13 @@ import java.util.Set;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.doThrow;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -174,6 +178,104 @@ class CoreFunctionalityIntegrationTest {
         assertThat(passwordEncoder.matches(valid.getPassword(), saved.getPassword())).isTrue();
         assertThat(saved.getRoles()).extracting(Role::getName).containsExactly("ROLE_USER");
         assertThat(saved.getProfileImageUrl()).isEqualTo("stored-image.png");
+    }
+
+    @Test
+    void roleUserCanEditOnlyTheirOwnProfileAndUploadANewProfileImage() throws Exception {
+        User alice = createUser("alice", "alice@example.com", "password");
+        User bob = createUser("bob", "bob@example.com", "password");
+        String originalPassword = alice.getPassword();
+        Set<Role> originalRoles = alice.getRoles();
+        String token = loginToken(alice.getUsername(), "password");
+        MockMultipartFile newImage = new MockMultipartFile(
+                "image", "avatar.png", MediaType.IMAGE_PNG_VALUE, new byte[]{1, 2, 3}
+        );
+
+        mockMvc.perform(multipart("/api/auth/profile")
+                        .file(newImage)
+                        .file(jsonPart("profile", new UpdateProfileDto(
+                                "Alice Updated",
+                                "Profile",
+                                "A short profile bio"
+                        )))
+                        .with(request -> {
+                            request.setMethod("PATCH");
+                            return request;
+                        })
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.username").value("alice"))
+                .andExpect(jsonPath("$.name").value("Alice Updated"))
+                .andExpect(jsonPath("$.lastName").value("Profile"))
+                .andExpect(jsonPath("$.bio").value("A short profile bio"))
+                .andExpect(jsonPath("$.profileImageUrl").value("stored-avatar.png"));
+
+        User updatedAlice = userRepository.findById(alice.getId()).orElseThrow();
+        assertThat(updatedAlice.getUsername()).isEqualTo("alice");
+        assertThat(updatedAlice.getEmail()).isEqualTo("alice@example.com");
+        assertThat(updatedAlice.getPassword()).isEqualTo(originalPassword);
+        assertThat(updatedAlice.getRoles()).isEqualTo(originalRoles);
+        assertThat(updatedAlice.getProfileImageUrl()).isEqualTo("stored-avatar.png");
+        assertThat(userRepository.findById(bob.getId()).orElseThrow().getName()).isEqualTo("bob");
+    }
+
+    @Test
+    void profileEditingValidatesFieldsAndRequiresRoleUser() throws Exception {
+        User alice = createUser("alice", "alice@example.com", "password");
+        String token = loginToken(alice.getUsername(), "password");
+
+        mockMvc.perform(multipart("/api/auth/profile")
+                        .file(jsonPart("profile", new UpdateProfileDto("   ", "User", "Bio")))
+                        .with(request -> {
+                            request.setMethod("PATCH");
+                            return request;
+                        })
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isBadRequest());
+
+        mockMvc.perform(multipart("/api/auth/profile")
+                        .file(jsonPart("profile", new UpdateProfileDto("Alice", "User", "x".repeat(501))))
+                        .with(request -> {
+                            request.setMethod("PATCH");
+                            return request;
+                        })
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isBadRequest());
+
+        doThrow(new IllegalArgumentException("Unsupported image type"))
+                .when(imageStorageService)
+                .save(argThat(image -> "text/plain".equals(image.getContentType())));
+        mockMvc.perform(multipart("/api/auth/profile")
+                        .file(new MockMultipartFile(
+                                "image", "profile.txt", MediaType.TEXT_PLAIN_VALUE, "not an image".getBytes()
+                        ))
+                        .file(jsonPart("profile", new UpdateProfileDto("Alice", "User", "Bio")))
+                        .with(request -> {
+                            request.setMethod("PATCH");
+                            return request;
+                        })
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isBadRequest());
+
+        SecurityContextHolder.clearContext();
+        mockMvc.perform(multipart("/api/auth/profile")
+                        .file(jsonPart("profile", new UpdateProfileDto("Alice", "User", "Bio")))
+                        .with(request -> {
+                            request.setMethod("PATCH");
+                            return request;
+                        }))
+                .andExpect(status().isUnauthorized());
+
+        mockMvc.perform(multipart("/api/auth/profile")
+                        .file(jsonPart("profile", new UpdateProfileDto("Alice", "User", "Bio")))
+                        .with(request -> {
+                            request.setMethod("PATCH");
+                            return request;
+                        })
+                        .with(user("admin").roles("ADMIN")))
+                .andExpect(status().isForbidden());
+
+        assertThat(userRepository.findById(alice.getId()).orElseThrow().getName()).isEqualTo("alice");
     }
 
     @Test

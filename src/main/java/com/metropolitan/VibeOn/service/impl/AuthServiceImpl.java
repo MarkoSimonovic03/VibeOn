@@ -111,4 +111,24 @@ public class AuthServiceImpl implements AuthService {
                 followRepository.countByFollowerId(otherUser.getId())
         );
     }
+
+    @Override
+    @Transactional
+    public ProfileDto updateProfile(MultipartFile image, UpdateProfileDto updateProfileDto) throws IOException {
+        User currentUser = userLookupService.getCurrentUser();
+        String newProfileImageUrl = null;
+        if (image != null && !image.isEmpty()) {
+            newProfileImageUrl = imageStorageService.save(image);
+        }
+
+        currentUser.setName(updateProfileDto.name().trim());
+        currentUser.setLastName(updateProfileDto.lastName().trim());
+        currentUser.setBio(updateProfileDto.bio() == null ? null : updateProfileDto.bio().trim());
+
+        if (newProfileImageUrl != null) {
+            currentUser.setProfileImageUrl(newProfileImageUrl);
+        }
+
+        return getProfileInfo(currentUser.getUsername());
+    }
 }

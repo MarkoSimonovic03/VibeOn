@@ -29,6 +29,9 @@ public class User {
     @Column(name = "last_name")
     private String lastName;
 
+    @Column(name = "bio", length = 500)
+    private String bio;
+
     @Column(name = "created_at")
     private LocalDate createdAt;
 

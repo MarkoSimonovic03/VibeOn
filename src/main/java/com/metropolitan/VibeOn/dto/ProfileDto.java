@@ -17,6 +17,7 @@ public class ProfileDto {
     private String username;
     private String name;
     private String lastName;
+    private String bio;
     private LocalDate createdAt;
     private String profileImageUrl;
     private Boolean isFollowing;
@@ -40,6 +41,7 @@ public class ProfileDto {
                 user.getUsername(),
                 user.getName(),
                 user.getLastName(),
+                user.getBio(),
                 user.getCreatedAt(),
                 user.getProfileImageUrl(),
                 isFollowing,
