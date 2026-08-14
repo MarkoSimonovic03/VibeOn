@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Getter
 @Setter
@@ -18,6 +19,8 @@ public class SingleMessageDto {
     private String content;
     private LocalDateTime createdAt;
     private SharedPostDto sharedPost;
+    private boolean read;
+    private List<MessageReactionDto> reactions;
 
     public static SingleMessageDto fromMessage(Message message) {
         return new SingleMessageDto(
@@ -25,7 +28,9 @@ public class SingleMessageDto {
                 message.getUser().getUsername(),
                 message.getContent(),
                 message.getCreatedAt(),
-                SharedPostDto.fromPost(message.getSharedPost())
+                SharedPostDto.fromPost(message.getSharedPost()),
+                message.isRead(),
+                List.of()
         );
     }
 }

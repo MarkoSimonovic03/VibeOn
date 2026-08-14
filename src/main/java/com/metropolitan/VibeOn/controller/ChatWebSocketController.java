@@ -2,6 +2,8 @@ package com.metropolitan.VibeOn.controller;
 
 import com.metropolitan.VibeOn.dto.ChatMessageWsDto;
 import com.metropolitan.VibeOn.dto.SingleMessageDto;
+import com.metropolitan.VibeOn.dto.ChatTypingEventDto;
+import com.metropolitan.VibeOn.dto.ChatTypingWsDto;
 import com.metropolitan.VibeOn.service.ChatService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -31,5 +33,17 @@ public class ChatWebSocketController {
         );
 
         messagingTemplate.convertAndSend("/topic/chat/" + message.getChatId(), savedMessage);
+    }
+
+    @MessageMapping("/chat.typing")
+    public void updateTyping(@Valid ChatTypingWsDto typing, Principal principal) {
+        if (principal == null) {
+            throw new RuntimeException("User not authenticated");
+        }
+        chatService.requireChatMembership(typing.chatId(), principal.getName());
+        messagingTemplate.convertAndSend(
+                "/topic/chat/" + typing.chatId() + "/typing",
+                new ChatTypingEventDto(typing.chatId(), principal.getName(), typing.typing())
+        );
     }
 }

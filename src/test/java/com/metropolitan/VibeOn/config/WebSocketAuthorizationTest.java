@@ -79,6 +79,14 @@ class WebSocketAuthorizationTest {
         );
 
         assertThat(interceptor.preSend(message, null)).isSameAs(message);
+
+        Message<?> typingMessage = stompMessage(
+                StompCommand.SUBSCRIBE,
+                "/topic/chat/10/typing",
+                alice,
+                null
+        );
+        assertThat(interceptor.preSend(typingMessage, null)).isSameAs(typingMessage);
     }
 
     @Test

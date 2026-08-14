@@ -99,7 +99,9 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
         }
 
         try {
-            Long chatId = Long.valueOf(destination.substring(chatPrefix.length()));
+            String chatPath = destination.substring(chatPrefix.length());
+            String chatIdSegment = chatPath.split("/", 2)[0];
+            Long chatId = Long.valueOf(chatIdSegment);
             if (!chatRepository.existsByIdAndUsersUsername(chatId, accessor.getUser().getName())) {
                 throw new AccessDeniedException("Not authorized for this chat");
             }

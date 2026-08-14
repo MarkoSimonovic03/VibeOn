@@ -14,6 +14,8 @@ public interface MessageRepository extends JpaRepository<Message, Long> {
     @EntityGraph(attributePaths = {"user", "sharedPost", "sharedPost.user"})
     List<Message> findByChatIdOrderByCreatedAtDesc(@Param("chatId") Long chatId);
 
+    List<Message> findAllByChatIdAndUserIdNotAndReadFalse(Long chatId, Long userId);
+
     default List<SingleMessageDto> findMessagesByChatIdAsDto(Long chatId) {
         return findByChatIdOrderByCreatedAtDesc(chatId).stream()
                 .map(SingleMessageDto::fromMessage)
