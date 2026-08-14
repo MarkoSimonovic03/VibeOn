@@ -1,8 +1,10 @@
 package com.metropolitan.VibeOn;
 
+import com.metropolitan.VibeOn.entity.Follow;
 import com.metropolitan.VibeOn.entity.Role;
 import com.metropolitan.VibeOn.entity.Story;
 import com.metropolitan.VibeOn.entity.User;
+import com.metropolitan.VibeOn.repository.FollowRepository;
 import com.metropolitan.VibeOn.repository.RoleRepository;
 import com.metropolitan.VibeOn.repository.StoryRepository;
 import com.metropolitan.VibeOn.repository.UserRepository;
@@ -49,6 +51,8 @@ class StoryFunctionalityIntegrationTest {
     private RoleRepository roleRepository;
     @Autowired
     private StoryRepository storyRepository;
+    @Autowired
+    private FollowRepository followRepository;
     @Autowired
     private PasswordEncoder passwordEncoder;
 
@@ -117,6 +121,38 @@ class StoryFunctionalityIntegrationTest {
     }
 
     @Test
+    void privateStoriesAreVisibleOnlyToTheOwnerAndApprovedFollowers() throws Exception {
+        User privateOwner = createUser("private-owner", true);
+        User viewer = createUser("viewer");
+        LocalDateTime now = LocalDateTime.now();
+        Story privateStory = createStory(
+                privateOwner,
+                now.minusMinutes(5),
+                now.plusHours(23)
+        );
+
+        mockMvc.perform(get("/api/stories")
+                        .with(user(viewer.getUsername()).roles("USER")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(0));
+
+        mockMvc.perform(get("/api/stories")
+                        .with(user(privateOwner.getUsername()).roles("USER")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].id").value(privateStory.getId()))
+                .andExpect(jsonPath("$[0].ownStory").value(true));
+
+        followRepository.saveAndFlush(new Follow(null, viewer, privateOwner));
+
+        mockMvc.perform(get("/api/stories")
+                        .with(user(viewer.getUsername()).roles("USER")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].id").value(privateStory.getId()))
+                .andExpect(jsonPath("$[0].ownStory").value(false));
+    }
+
+    @Test
     void storyCreationRejectsEmptyAndUnsupportedUploads() throws Exception {
         User alice = createUser("alice");
 
@@ -162,6 +198,10 @@ class StoryFunctionalityIntegrationTest {
     }
 
     private User createUser(String username) {
+        return createUser(username, false);
+    }
+
+    private User createUser(String username, boolean isPrivate) {
         Role role = roleRepository.findByName("ROLE_USER").orElseThrow();
         User user = new User();
         user.setUsername(username);
@@ -172,6 +212,7 @@ class StoryFunctionalityIntegrationTest {
         user.setProfileImageUrl(username + ".png");
         user.setBirthDate(LocalDate.of(2000, 1, 1));
         user.setCreatedAt(LocalDate.now());
+        user.setPrivate(isPrivate);
         user.setRoles(Set.of(role));
         return userRepository.saveAndFlush(user);
     }

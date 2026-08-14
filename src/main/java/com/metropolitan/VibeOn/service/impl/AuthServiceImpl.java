@@ -4,6 +4,7 @@ import com.metropolitan.VibeOn.dto.*;
 import com.metropolitan.VibeOn.entity.Role;
 import com.metropolitan.VibeOn.entity.User;
 import com.metropolitan.VibeOn.repository.FollowRepository;
+import com.metropolitan.VibeOn.repository.FollowRequestRepository;
 import com.metropolitan.VibeOn.repository.RoleRepository;
 import com.metropolitan.VibeOn.repository.UserRepository;
 import com.metropolitan.VibeOn.security.JwtTokenProvider;
@@ -32,6 +33,7 @@ public class AuthServiceImpl implements AuthService {
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final FollowRepository followRepository;
+    private final FollowRequestRepository followRequestRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
     private final UserLookupService userLookupService;
@@ -93,9 +95,20 @@ public class AuthServiceImpl implements AuthService {
         User otherUser = userLookupService.getByUsername(username);
 
         boolean isFollowing = followRepository
-                .findByFollowerIdAndFolloweeId(currentUser.getId(), otherUser.getId())
-                .isPresent();
+                .existsByFollowerIdAndFolloweeId(currentUser.getId(), otherUser.getId());
+        boolean requestPending = followRequestRepository
+                .existsByRequesterIdAndTargetId(currentUser.getId(), otherUser.getId());
+        boolean canViewPosts = currentUser.getId().equals(otherUser.getId())
+                || !otherUser.isPrivate()
+                || isFollowing;
 
-        return ProfileDto.fromUser(otherUser, isFollowing);
+        return ProfileDto.fromUser(
+                otherUser,
+                isFollowing,
+                requestPending,
+                canViewPosts,
+                followRepository.countByFolloweeId(otherUser.getId()),
+                followRepository.countByFollowerId(otherUser.getId())
+        );
     }
 }

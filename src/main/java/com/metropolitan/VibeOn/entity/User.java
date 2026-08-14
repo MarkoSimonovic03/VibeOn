@@ -47,6 +47,9 @@ public class User {
     @Column(name = "gender")
     private boolean gender;
 
+    @Column(name = "is_private", nullable = false)
+    private boolean isPrivate = false;
+
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(name = "users_roles",
             joinColumns = @JoinColumn(name = "user_id", referencedColumnName = "id"),

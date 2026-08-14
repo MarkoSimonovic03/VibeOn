@@ -11,6 +11,7 @@ import com.metropolitan.VibeOn.repository.ChatRepository;
 import com.metropolitan.VibeOn.repository.MessageRepository;
 import com.metropolitan.VibeOn.repository.PostRepository;
 import com.metropolitan.VibeOn.service.ChatService;
+import com.metropolitan.VibeOn.service.PostAccessService;
 import com.metropolitan.VibeOn.service.UserLookupService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -29,6 +30,7 @@ public class ChatServiceImpl implements ChatService {
     private final MessageRepository messageRepository;
     private final PostRepository postRepository;
     private final UserLookupService userLookupService;
+    private final PostAccessService postAccessService;
 
     @Override
     @Transactional
@@ -55,6 +57,7 @@ public class ChatServiceImpl implements ChatService {
         Chat chat = getAuthorizedChat(chatId, currentUser);
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new NoSuchElementException("Post not found"));
+        postAccessService.requireCanView(post, currentUser);
 
         Message message = new Message();
         message.setChat(chat);

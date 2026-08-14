@@ -5,6 +5,7 @@ import com.metropolitan.VibeOn.entity.Story;
 import com.metropolitan.VibeOn.entity.User;
 import com.metropolitan.VibeOn.repository.StoryRepository;
 import com.metropolitan.VibeOn.service.ImageStorageService;
+import com.metropolitan.VibeOn.service.PostAccessService;
 import com.metropolitan.VibeOn.service.StoryService;
 import com.metropolitan.VibeOn.service.UserLookupService;
 import lombok.RequiredArgsConstructor;
@@ -25,6 +26,7 @@ public class StoryServiceImpl implements StoryService {
     private final StoryRepository storyRepository;
     private final UserLookupService userLookupService;
     private final ImageStorageService imageStorageService;
+    private final PostAccessService postAccessService;
 
     @Override
     @Transactional
@@ -52,6 +54,9 @@ public class StoryServiceImpl implements StoryService {
         return storyRepository
                 .findAllByCreatedAtLessThanEqualAndExpiresAtAfterOrderByCreatedAtDesc(now, now)
                 .stream()
+                .filter(story -> postAccessService.canViewAuthor(
+                        story.getUser().getId(), currentUser.getId()
+                ))
                 .map(story -> StoryDto.fromStory(story, currentUser.getId()))
                 .toList();
     }

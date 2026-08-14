@@ -51,6 +51,8 @@ public class PostController {
     public ResponseEntity<?> getPostById(@PathVariable @Positive Long id) {
         try {
             return ResponseEntity.ok(postService.getPostById(id));
+        } catch (org.springframework.security.access.AccessDeniedException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("This post is private.");
         } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Post not found.");
         } catch (Exception e) {
@@ -62,6 +64,8 @@ public class PostController {
     public ResponseEntity<?> getPostsByUsername(@PathVariable String username) {
         try {
             return ResponseEntity.ok(postService.getPostsByUsername(username));
+        } catch (org.springframework.security.access.AccessDeniedException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("This account is private.");
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An unexpected error occurred.");
         }

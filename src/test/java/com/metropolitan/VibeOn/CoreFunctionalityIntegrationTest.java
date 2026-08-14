@@ -1,15 +1,19 @@
 package com.metropolitan.VibeOn;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.metropolitan.VibeOn.dto.FullChatDto;
 import com.metropolitan.VibeOn.dto.LoginDto;
 import com.metropolitan.VibeOn.dto.RegisterDto;
 import com.metropolitan.VibeOn.dto.SingleMessageDto;
 import com.metropolitan.VibeOn.dto.SinglePostDto;
 import com.metropolitan.VibeOn.entity.Role;
+import com.metropolitan.VibeOn.entity.Follow;
+import com.metropolitan.VibeOn.entity.FollowRequest;
 import com.metropolitan.VibeOn.entity.User;
 import com.metropolitan.VibeOn.repository.ChatRepository;
 import com.metropolitan.VibeOn.repository.FollowRepository;
+import com.metropolitan.VibeOn.repository.FollowRequestRepository;
 import com.metropolitan.VibeOn.repository.MessageRepository;
 import com.metropolitan.VibeOn.repository.PostRepository;
 import com.metropolitan.VibeOn.repository.RoleRepository;
@@ -40,6 +44,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.nio.file.AccessDeniedException;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.Map;
 import java.util.List;
 import java.util.Set;
 
@@ -71,6 +77,8 @@ class CoreFunctionalityIntegrationTest {
     private PostRepository postRepository;
     @Autowired
     private FollowRepository followRepository;
+    @Autowired
+    private FollowRequestRepository followRequestRepository;
     @Autowired
     private ChatRepository chatRepository;
     @Autowired
@@ -286,6 +294,112 @@ class CoreFunctionalityIntegrationTest {
     }
 
     @Test
+    void publicRelationshipListsIncludeViewerSpecificActionStatesAndProfileCounts() throws Exception {
+        User owner = createUser("owner", "owner@example.com", "password");
+        User viewer = createUser("viewer", "viewer@example.com", "password");
+        User followed = createUser("followed", "followed@example.com", "password");
+        User requested = createUser("requested", "requested@example.com", "password");
+        User available = createUser("available", "available@example.com", "password");
+        requested.setPrivate(true);
+
+        followRepository.saveAndFlush(new Follow(null, viewer, owner));
+        followRepository.saveAndFlush(new Follow(null, owner, viewer));
+        followRepository.saveAndFlush(new Follow(null, owner, followed));
+        followRepository.saveAndFlush(new Follow(null, owner, requested));
+        followRepository.saveAndFlush(new Follow(null, owner, available));
+        followRepository.saveAndFlush(new Follow(null, viewer, followed));
+        saveFollowRequest(viewer, requested);
+
+        String token = loginToken(viewer.getUsername(), "password");
+
+        mockMvc.perform(get("/api/auth/user/{username}", owner.getUsername())
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.followerCount").value(1))
+                .andExpect(jsonPath("$.followingCount").value(4))
+                .andExpect(jsonPath("$.canViewConnections").value(true));
+
+        String response = mockMvc.perform(get("/api/follows/{username}/following", owner.getUsername())
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        List<Map<String, Object>> users = objectMapper.readValue(response, new TypeReference<>() {});
+        Map<String, Object> currentUser = relationshipUser(users, "viewer");
+        Map<String, Object> followedUser = relationshipUser(users, "followed");
+        Map<String, Object> requestedUser = relationshipUser(users, "requested");
+        Map<String, Object> availableUser = relationshipUser(users, "available");
+
+        assertThat(currentUser.get("currentUser")).isEqualTo(true);
+        assertThat(followedUser.get("following")).isEqualTo(true);
+        assertThat(followedUser.get("requestPending")).isEqualTo(false);
+        assertThat(requestedUser.get("following")).isEqualTo(false);
+        assertThat(requestedUser.get("requestPending")).isEqualTo(true);
+        assertThat(availableUser.get("following")).isEqualTo(false);
+        assertThat(availableUser.get("requestPending")).isEqualTo(false);
+        assertThat(availableUser).containsEntry("name", "available").containsEntry("lastName", "Test");
+    }
+
+    @Test
+    void privateRelationshipListsAllowOnlyOwnerAndApprovedFollowers() throws Exception {
+        User owner = createUser("private-owner", "private-owner@example.com", "password");
+        owner.setPrivate(true);
+        User approved = createUser("approved", "approved@example.com", "password");
+        User pending = createUser("pending", "pending@example.com", "password");
+        User outsider = createUser("outsider", "outsider@example.com", "password");
+        followRepository.saveAndFlush(new Follow(null, approved, owner));
+        saveFollowRequest(pending, owner);
+
+        for (String endpoint : List.of("followers", "following")) {
+            mockMvc.perform(get("/api/follows/{username}/{endpoint}", owner.getUsername(), endpoint)
+                            .header("Authorization", "Bearer " + loginToken(owner.getUsername(), "password")))
+                    .andExpect(status().isOk());
+            mockMvc.perform(get("/api/follows/{username}/{endpoint}", owner.getUsername(), endpoint)
+                            .header("Authorization", "Bearer " + loginToken(approved.getUsername(), "password")))
+                    .andExpect(status().isOk());
+            mockMvc.perform(get("/api/follows/{username}/{endpoint}", owner.getUsername(), endpoint)
+                            .header("Authorization", "Bearer " + loginToken(pending.getUsername(), "password")))
+                    .andExpect(status().isForbidden());
+            mockMvc.perform(get("/api/follows/{username}/{endpoint}", owner.getUsername(), endpoint)
+                            .header("Authorization", "Bearer " + loginToken(outsider.getUsername(), "password")))
+                    .andExpect(status().isForbidden());
+        }
+
+        mockMvc.perform(get("/api/auth/user/{username}", owner.getUsername())
+                        .header("Authorization", "Bearer " + loginToken(pending.getUsername(), "password")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.followRequestPending").value(true))
+                .andExpect(jsonPath("$.canViewConnections").value(false));
+    }
+
+    @Test
+    void privateFollowRequestCanBeCreatedAndCancelledWithoutGrantingListAccess() throws Exception {
+        User requester = createUser("requester", "requester@example.com", "password");
+        User target = createUser("private-target", "private-target@example.com", "password");
+        target.setPrivate(true);
+        String token = loginToken(requester.getUsername(), "password");
+
+        mockMvc.perform(post("/api/follows/{userId}", target.getId())
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.following").value(false))
+                .andExpect(jsonPath("$.requestPending").value(true));
+        assertThat(followRequestRepository.existsByRequesterIdAndTargetId(requester.getId(), target.getId()))
+                .isTrue();
+
+        mockMvc.perform(get("/api/follows/{username}/followers", target.getUsername())
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isForbidden());
+
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+                        .delete("/api/follows/{userId}/request", target.getId())
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isNoContent());
+        assertThat(followRequestRepository.existsByRequesterIdAndTargetId(requester.getId(), target.getId()))
+                .isFalse();
+    }
+
+    @Test
     void chatCreationAndMessageSendingRequireChatMembership() {
         User alice = createUser("alice", "alice@example.com", "password");
         User bob = createUser("bob", "bob@example.com", "password");
@@ -322,6 +436,21 @@ class CoreFunctionalityIntegrationTest {
         user.setCreatedAt(LocalDate.now());
         user.setRoles(Set.of(role));
         return userRepository.saveAndFlush(user);
+    }
+
+    private void saveFollowRequest(User requester, User target) {
+        FollowRequest request = new FollowRequest();
+        request.setRequester(requester);
+        request.setTarget(target);
+        request.setCreatedAt(LocalDateTime.now());
+        followRequestRepository.saveAndFlush(request);
+    }
+
+    private Map<String, Object> relationshipUser(List<Map<String, Object>> users, String username) {
+        return users.stream()
+                .filter(user -> username.equals(user.get("username")))
+                .findFirst()
+                .orElseThrow();
     }
 
     private void authenticateAs(User user) {

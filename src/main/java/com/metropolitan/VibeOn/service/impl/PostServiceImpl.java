@@ -13,6 +13,7 @@ import com.metropolitan.VibeOn.repository.PostLikeRepository;
 import com.metropolitan.VibeOn.repository.PostRepository;
 import com.metropolitan.VibeOn.service.ImageStorageService;
 import com.metropolitan.VibeOn.service.MentionService;
+import com.metropolitan.VibeOn.service.PostAccessService;
 import com.metropolitan.VibeOn.service.PostService;
 import com.metropolitan.VibeOn.service.UserLookupService;
 import lombok.RequiredArgsConstructor;
@@ -42,6 +43,7 @@ public class PostServiceImpl implements PostService {
     private final PostBookmarkRepository postBookmarkRepository;
     private final PostCommentRepository postCommentRepository;
     private final MentionService mentionService;
+    private final PostAccessService postAccessService;
 
     @Override
     @Transactional
@@ -81,6 +83,9 @@ public class PostServiceImpl implements PostService {
     @Transactional(readOnly = true)
     public SinglePostDto getPostById(Long id) {
         User currentUser = userLookupService.getCurrentUser();
+        Post entity = postRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Post not found."));
+        postAccessService.requireCanView(entity, currentUser);
         SinglePostDto post = postRepository.findPostByIdAsDto(id)
                 .orElseThrow(() -> new RuntimeException("Post not found."));
         return withCurrentUserState(post, currentUser.getId());
@@ -96,7 +101,14 @@ public class PostServiceImpl implements PostService {
     @Override
     @Transactional(readOnly = true)
     public List<SinglePostDto> getPostsByUsername(String username) {
-        Long currentUserId = userLookupService.getCurrentUser().getId();
+        User currentUser = userLookupService.getCurrentUser();
+        User profileUser = userLookupService.getByUsername(username);
+        if (!postAccessService.canViewAuthor(profileUser.getId(), currentUser.getId())) {
+            throw new org.springframework.security.access.AccessDeniedException(
+                    "This account is private."
+            );
+        }
+        Long currentUserId = currentUser.getId();
         return withCurrentUserState(postRepository.findAllPostsByUsernameAsDto(username), currentUserId);
     }
 
@@ -149,6 +161,7 @@ public class PostServiceImpl implements PostService {
         User currentUser = userLookupService.getCurrentUser();
         Post post = postRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Post not found."));
+        postAccessService.requireCanView(post, currentUser);
 
         if (!postLikeRepository.existsByPostIdAndUserId(id, currentUser.getId())) {
             PostLike postLike = new PostLike();
@@ -165,8 +178,9 @@ public class PostServiceImpl implements PostService {
     @PreAuthorize("hasRole('USER')")
     public PostLikeResponseDto unlikePost(Long id) {
         User currentUser = userLookupService.getCurrentUser();
-        postRepository.findById(id)
+        Post post = postRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Post not found."));
+        postAccessService.requireCanView(post, currentUser);
 
         postLikeRepository.findByPostIdAndUserId(id, currentUser.getId())
                 .ifPresent(postLikeRepository::delete);
@@ -192,6 +206,7 @@ public class PostServiceImpl implements PostService {
         User currentUser = userLookupService.getCurrentUser();
         Post post = postRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Post not found."));
+        postAccessService.requireCanView(post, currentUser);
 
         if (!postBookmarkRepository.existsByPostIdAndUserId(id, currentUser.getId())) {
             PostBookmark bookmark = new PostBookmark();
@@ -208,8 +223,9 @@ public class PostServiceImpl implements PostService {
     @PreAuthorize("hasRole('USER')")
     public PostBookmarkResponseDto removeBookmark(Long id) {
         User currentUser = userLookupService.getCurrentUser();
-        postRepository.findById(id)
+        Post post = postRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Post not found."));
+        postAccessService.requireCanView(post, currentUser);
 
         postBookmarkRepository.findByPostIdAndUserId(id, currentUser.getId())
                 .ifPresent(postBookmarkRepository::delete);
@@ -247,6 +263,7 @@ public class PostServiceImpl implements PostService {
         List<SinglePostDto> recommendations = postRepository
                 .findExploreCandidates(currentUserId)
                 .stream()
+                .filter(post -> postAccessService.canViewAuthor(post.getUserId(), currentUserId))
                 .map(post -> new RankedPost(post, recommendationScore(post, now)))
                 .sorted(Comparator
                         .comparingLong(RankedPost::score)
@@ -263,8 +280,10 @@ public class PostServiceImpl implements PostService {
     }
 
     private List<SinglePostDto> withCurrentUserState(List<SinglePostDto> posts, Long currentUserId) {
-        posts.forEach(post -> withCurrentUserState(post, currentUserId));
-        return posts;
+        return posts.stream()
+                .filter(post -> postAccessService.canViewAuthor(post.getUserId(), currentUserId))
+                .map(post -> withCurrentUserState(post, currentUserId))
+                .toList();
     }
 
     private SinglePostDto withCurrentUserState(SinglePostDto post, Long currentUserId) {

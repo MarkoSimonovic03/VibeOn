@@ -20,8 +20,21 @@ public class ProfileDto {
     private LocalDate createdAt;
     private String profileImageUrl;
     private Boolean isFollowing;
+    private Boolean isPrivate;
+    private boolean followRequestPending;
+    private boolean canViewPosts;
+    private long followerCount;
+    private long followingCount;
+    private boolean canViewConnections;
 
-    public static ProfileDto fromUser(User user, Boolean isFollowing) {
+    public static ProfileDto fromUser(
+            User user,
+            boolean isFollowing,
+            boolean followRequestPending,
+            boolean canViewPosts,
+            long followerCount,
+            long followingCount
+    ) {
         return new ProfileDto(
                 user.getId(),
                 user.getUsername(),
@@ -29,7 +42,13 @@ public class ProfileDto {
                 user.getLastName(),
                 user.getCreatedAt(),
                 user.getProfileImageUrl(),
-                isFollowing
+                isFollowing,
+                user.isPrivate(),
+                followRequestPending,
+                canViewPosts,
+                followerCount,
+                followingCount,
+                canViewPosts
         );
     }
 }
