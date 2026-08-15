@@ -1,7 +1,6 @@
 package com.metropolitan.VibeOn.service;
 
 import com.metropolitan.VibeOn.dto.NotificationDto;
-import com.metropolitan.VibeOn.entity.Chat;
 import com.metropolitan.VibeOn.entity.Post;
 import com.metropolitan.VibeOn.entity.User;
 
@@ -21,8 +20,6 @@ public interface NotificationService {
     void notifyPostLike(User actor, Post post);
 
     void notifyPostComment(User actor, Post post, String commentText);
-
-    void notifyChatMessage(User actor, Chat chat, String messageText);
 
     void notifyPostMentions(User actor, Post post, List<String> usernames);
 

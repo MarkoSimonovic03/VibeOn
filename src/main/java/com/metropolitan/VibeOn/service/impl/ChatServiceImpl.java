@@ -4,6 +4,7 @@ import com.metropolitan.VibeOn.dto.FullChatDto;
 import com.metropolitan.VibeOn.dto.SingleChatDto;
 import com.metropolitan.VibeOn.dto.SingleMessageDto;
 import com.metropolitan.VibeOn.dto.ChatReadEventDto;
+import com.metropolitan.VibeOn.dto.ChatUnreadWsEventDto;
 import com.metropolitan.VibeOn.dto.MessageReactionDto;
 import com.metropolitan.VibeOn.dto.MessageReactionUpdateDto;
 import com.metropolitan.VibeOn.entity.Chat;
@@ -16,11 +17,11 @@ import com.metropolitan.VibeOn.repository.MessageRepository;
 import com.metropolitan.VibeOn.repository.MessageReactionRepository;
 import com.metropolitan.VibeOn.repository.PostRepository;
 import com.metropolitan.VibeOn.service.ChatService;
-import com.metropolitan.VibeOn.service.NotificationService;
 import com.metropolitan.VibeOn.service.PostAccessService;
 import com.metropolitan.VibeOn.service.UserLookupService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -40,7 +41,7 @@ public class ChatServiceImpl implements ChatService {
     private final PostRepository postRepository;
     private final UserLookupService userLookupService;
     private final PostAccessService postAccessService;
-    private final NotificationService notificationService;
+    private final SimpMessagingTemplate messagingTemplate;
 
     @Override
     @Transactional
@@ -57,7 +58,7 @@ public class ChatServiceImpl implements ChatService {
 
         Message savedMessage = messageRepository.save(message);
         chat.setLastMessage(savedMessage);
-        notificationService.notifyChatMessage(currentUser, chat, savedMessage.getContent());
+        publishUnreadUpdateToOtherParticipants(chat, currentUser);
 
         return toMessageDto(savedMessage);
     }
@@ -81,14 +82,26 @@ public class ChatServiceImpl implements ChatService {
 
         Message savedMessage = messageRepository.save(message);
         chat.setLastMessage(savedMessage);
-        notificationService.notifyChatMessage(currentUser, chat, savedMessage.getContent());
+        publishUnreadUpdateToOtherParticipants(chat, currentUser);
 
         return toMessageDto(savedMessage);
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<SingleChatDto> getChatsForCurrentUser() {
-        return chatRepository.findAllChatsForUser(userLookupService.getCurrentUser().getId());
+        Long currentUserId = userLookupService.getCurrentUser().getId();
+        List<SingleChatDto> chats = chatRepository.findAllChatsForUser(currentUserId);
+        chats.forEach(chat -> chat.setUnreadCount(
+                messageRepository.countUnreadMessagesForChatAndUser(chat.getId(), currentUserId)
+        ));
+        return chats;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public long getUnreadMessageCount() {
+        return messageRepository.countUnreadMessagesForUser(userLookupService.getCurrentUser().getId());
     }
 
     @Override
@@ -106,6 +119,7 @@ public class ChatServiceImpl implements ChatService {
                 });
 
         markIncomingMessagesRead(chat, currentUser);
+        publishUnreadUpdate(currentUser, chat.getId());
 
         return new FullChatDto(
                 chat.getId(),
@@ -125,6 +139,7 @@ public class ChatServiceImpl implements ChatService {
         User currentUser = userLookupService.getCurrentUser();
         Chat chat = getAuthorizedChat(chatId, currentUser);
         markIncomingMessagesRead(chat, currentUser);
+        publishUnreadUpdate(currentUser, chat.getId());
         return new ChatReadEventDto(chatId, currentUser.getUsername());
     }
 
@@ -169,6 +184,23 @@ public class ChatServiceImpl implements ChatService {
     private void markIncomingMessagesRead(Chat chat, User currentUser) {
         messageRepository.findAllByChatIdAndUserIdNotAndReadFalse(chat.getId(), currentUser.getId())
                 .forEach(message -> message.setRead(true));
+    }
+
+    private void publishUnreadUpdateToOtherParticipants(Chat chat, User sender) {
+        chat.getUsers().stream()
+                .filter(participant -> !participant.getId().equals(sender.getId()))
+                .forEach(participant -> publishUnreadUpdate(participant, chat.getId()));
+    }
+
+    private void publishUnreadUpdate(User recipient, Long chatId) {
+        messagingTemplate.convertAndSendToUser(
+                recipient.getUsername(),
+                "/queue/chat-unread",
+                new ChatUnreadWsEventDto(
+                        chatId,
+                        messageRepository.countUnreadMessagesForUser(recipient.getId())
+                )
+        );
     }
 
     private Message getAuthorizedMessage(Long chatId, Long messageId, User currentUser) {

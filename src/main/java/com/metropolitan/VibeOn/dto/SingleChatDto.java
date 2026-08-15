@@ -18,4 +18,21 @@ public class SingleChatDto {
     private String lastMessage;
     private LocalDateTime lastMessageCreatedAt;
     private String lastMessageUsername;
+    private long unreadCount;
+
+    public SingleChatDto(
+            Long id,
+            String otherUsername,
+            String otherProfileImageUrl,
+            String lastMessage,
+            LocalDateTime lastMessageCreatedAt,
+            String lastMessageUsername
+    ) {
+        this.id = id;
+        this.otherUsername = otherUsername;
+        this.otherProfileImageUrl = otherProfileImageUrl;
+        this.lastMessage = lastMessage;
+        this.lastMessageCreatedAt = lastMessageCreatedAt;
+        this.lastMessageUsername = lastMessageUsername;
+    }
 }

@@ -90,6 +90,23 @@ class ChatFeaturesIntegrationTest {
         Long aliceMessageId = chatService.sendMessage("alice", chat.getId(), "Hello Bob").getId();
         assertThat(messageRepository.findById(aliceMessageId).orElseThrow().isRead()).isFalse();
 
+        mockMvc.perform(get("/api/chats/unread-count")
+                        .with(user(bob.getUsername()).roles("USER")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.unreadCount").value(1));
+        mockMvc.perform(get("/api/chats/unread-count")
+                        .with(user(alice.getUsername()).roles("USER")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.unreadCount").value(0));
+        mockMvc.perform(get("/api/chats")
+                        .with(user(bob.getUsername()).roles("USER")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].unreadCount").value(1));
+        mockMvc.perform(get("/api/chats")
+                        .with(user(alice.getUsername()).roles("USER")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].unreadCount").value(0));
+
         mockMvc.perform(get("/api/chats/{username}", bob.getUsername())
                         .with(user(alice.getUsername()).roles("USER")))
                 .andExpect(status().isOk())
@@ -100,6 +117,14 @@ class ChatFeaturesIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.messages[0].read").value(true));
         assertThat(messageRepository.findById(aliceMessageId).orElseThrow().isRead()).isTrue();
+        mockMvc.perform(get("/api/chats/unread-count")
+                        .with(user(bob.getUsername()).roles("USER")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.unreadCount").value(0));
+        mockMvc.perform(get("/api/chats")
+                        .with(user(bob.getUsername()).roles("USER")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].unreadCount").value(0));
         verify(messagingTemplate, atLeastOnce()).convertAndSend(
                 eq("/topic/chat/" + chat.getId() + "/read"),
                 any(Object.class)
@@ -156,6 +181,8 @@ class ChatFeaturesIntegrationTest {
         SecurityContextHolder.clearContext();
 
         mockMvc.perform(patch("/api/chats/{chatId}/read", firstChat.getId()))
+                .andExpect(status().isUnauthorized());
+        mockMvc.perform(get("/api/chats/unread-count"))
                 .andExpect(status().isUnauthorized());
         react(firstChat.getId(), messageId, "admin", "ADMIN", "👍")
                 .andExpect(status().isForbidden());

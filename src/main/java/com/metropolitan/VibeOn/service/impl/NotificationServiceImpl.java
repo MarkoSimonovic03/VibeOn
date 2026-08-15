@@ -1,6 +1,7 @@
 package com.metropolitan.VibeOn.service.impl;
 
 import com.metropolitan.VibeOn.dto.NotificationDto;
+import com.metropolitan.VibeOn.dto.NotificationWsEventDto;
 import com.metropolitan.VibeOn.entity.*;
 import com.metropolitan.VibeOn.repository.NotificationRepository;
 import com.metropolitan.VibeOn.repository.UserRepository;
@@ -10,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
@@ -24,13 +26,16 @@ public class NotificationServiceImpl implements NotificationService {
     private final NotificationRepository notificationRepository;
     private final UserRepository userRepository;
     private final UserLookupService userLookupService;
+    private final SimpMessagingTemplate messagingTemplate;
 
     @Override
     @Transactional(readOnly = true)
     @PreAuthorize("hasRole('USER')")
     public List<NotificationDto> getCurrentUserNotifications() {
         return notificationRepository
-                .findAllByRecipientIdOrderByCreatedAtDescIdDesc(userLookupService.getCurrentUser().getId())
+                .findAllByRecipientIdAndTypeNotOrderByCreatedAtDescIdDesc(
+                        userLookupService.getCurrentUser().getId(), NotificationType.CHAT_MESSAGE
+                )
                 .stream()
                 .map(NotificationDto::fromNotification)
                 .toList();
@@ -40,8 +45,8 @@ public class NotificationServiceImpl implements NotificationService {
     @Transactional(readOnly = true)
     @PreAuthorize("hasRole('USER')")
     public long getUnreadCount() {
-        return notificationRepository.countByRecipientIdAndReadFalse(
-                userLookupService.getCurrentUser().getId()
+        return notificationRepository.countByRecipientIdAndTypeNotAndReadFalse(
+                userLookupService.getCurrentUser().getId(), NotificationType.CHAT_MESSAGE
         );
     }
 
@@ -56,15 +61,22 @@ public class NotificationServiceImpl implements NotificationService {
             throw new AccessDeniedException("This notification belongs to another user.");
         }
         notification.setRead(true);
+        notificationRepository.flush();
+        publish(notification.getRecipient(), "READ", NotificationDto.fromNotification(notification));
     }
 
     @Override
     @Transactional
     @PreAuthorize("hasRole('USER')")
     public void markAllAsRead() {
+        User currentUser = userLookupService.getCurrentUser();
         notificationRepository
-                .findAllByRecipientIdOrderByCreatedAtDescIdDesc(userLookupService.getCurrentUser().getId())
+                .findAllByRecipientIdAndTypeNotOrderByCreatedAtDescIdDesc(
+                        currentUser.getId(), NotificationType.CHAT_MESSAGE
+                )
                 .forEach(notification -> notification.setRead(true));
+        notificationRepository.flush();
+        publish(currentUser, "READ_ALL", null);
     }
 
     @Override
@@ -85,15 +97,6 @@ public class NotificationServiceImpl implements NotificationService {
     public void notifyPostComment(User actor, Post post, String commentText) {
         create(post.getUser(), actor, NotificationType.POST_COMMENT,
                 context("Commented on your post", commentText), post.getId(), null);
-    }
-
-    @Override
-    @Transactional
-    public void notifyChatMessage(User actor, Chat chat, String messageText) {
-        chat.getUsers().stream()
-                .filter(user -> !user.getId().equals(actor.getId()))
-                .forEach(recipient -> create(recipient, actor, NotificationType.CHAT_MESSAGE,
-                        context("Sent you a message", messageText), null, chat.getId()));
     }
 
     @Override
@@ -151,7 +154,22 @@ public class NotificationServiceImpl implements NotificationService {
         notification.setChatId(chatId);
         notification.setCreatedAt(LocalDateTime.now());
         notification.setRead(false);
-        notificationRepository.save(notification);
+        Notification saved = notificationRepository.saveAndFlush(notification);
+        publish(recipient, "UPSERT", NotificationDto.fromNotification(saved));
+    }
+
+    private void publish(User recipient, String action, NotificationDto notification) {
+        messagingTemplate.convertAndSendToUser(
+                recipient.getUsername(),
+                "/queue/notifications",
+                new NotificationWsEventDto(
+                        action,
+                        notification,
+                        notificationRepository.countByRecipientIdAndTypeNotAndReadFalse(
+                                recipient.getId(), NotificationType.CHAT_MESSAGE
+                        )
+                )
+        );
     }
 
     private String context(String action, String detail) {

@@ -24,6 +24,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.NoSuchElementException;
+import java.util.Map;
 
 @RestController
 @RequiredArgsConstructor
@@ -42,6 +43,12 @@ public class ChatController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("An unexpected error occurred.");
         }
+    }
+
+    @GetMapping("/unread-count")
+    @PreAuthorize("hasRole('USER')")
+    public ResponseEntity<Map<String, Long>> getUnreadMessageCount() {
+        return ResponseEntity.ok(Map.of("unreadCount", chatService.getUnreadMessageCount()));
     }
 
     @GetMapping("/{username}")

@@ -14,6 +14,8 @@ public interface ChatService {
 
     List<SingleChatDto> getChatsForCurrentUser();
 
+    long getUnreadMessageCount();
+
     FullChatDto getChat(String username);
 
     ChatReadEventDto markChatAsRead(Long chatId);

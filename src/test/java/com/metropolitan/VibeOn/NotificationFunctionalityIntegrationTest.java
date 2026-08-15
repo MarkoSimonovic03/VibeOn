@@ -1,6 +1,7 @@
 package com.metropolitan.VibeOn;
 
 import com.metropolitan.VibeOn.dto.FullChatDto;
+import com.metropolitan.VibeOn.dto.ChatUnreadWsEventDto;
 import com.metropolitan.VibeOn.entity.Notification;
 import com.metropolitan.VibeOn.entity.NotificationType;
 import com.metropolitan.VibeOn.entity.Post;
@@ -23,6 +24,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -40,6 +42,9 @@ import java.util.Set;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
@@ -74,6 +79,9 @@ class NotificationFunctionalityIntegrationTest {
 
     @MockitoBean
     private ImageStorageService imageStorageService;
+
+    @MockitoBean
+    private SimpMessagingTemplate messagingTemplate;
 
     @BeforeEach
     void configureImageStorage() throws Exception {
@@ -110,13 +118,12 @@ class NotificationFunctionalityIntegrationTest {
         List<Notification> notifications = notificationRepository
                 .findAllByRecipientIdOrderByCreatedAtDescIdDesc(recipient.getId());
 
-        assertThat(notifications).hasSize(6);
+        assertThat(notifications).hasSize(5);
         assertThat(notifications).extracting(Notification::getType).containsExactlyInAnyOrder(
                 NotificationType.FOLLOW,
                 NotificationType.POST_LIKE,
                 NotificationType.POST_COMMENT,
                 NotificationType.COMMENT_MENTION,
-                NotificationType.CHAT_MESSAGE,
                 NotificationType.POST_MENTION
         );
         assertThat(notifications).allSatisfy(notification -> {
@@ -191,6 +198,46 @@ class NotificationFunctionalityIntegrationTest {
                         .with(user(recipient.getUsername()).roles("USER")))
                 .andExpect(status().isNoContent());
         assertThat(notificationRepository.countByRecipientIdAndReadFalse(recipient.getId())).isZero();
+    }
+
+    @Test
+    void chatMessagesDoNotCreateOrAppearAsNotifications() throws Exception {
+        User recipient = createUser("chat-recipient");
+        User actor = createUser("chat-actor");
+        Notification legacyChatNotification = new Notification();
+        legacyChatNotification.setRecipient(recipient);
+        legacyChatNotification.setActor(actor);
+        legacyChatNotification.setType(NotificationType.CHAT_MESSAGE);
+        legacyChatNotification.setContextText("Legacy chat notification");
+        legacyChatNotification.setCreatedAt(LocalDateTime.now());
+        legacyChatNotification.setRead(false);
+        notificationRepository.saveAndFlush(legacyChatNotification);
+
+        authenticateAs(actor);
+        FullChatDto chat = chatService.getChat(recipient.getUsername());
+
+        chatService.sendMessage(actor.getUsername(), chat.getId(), "First message");
+        chatService.sendMessage(actor.getUsername(), chat.getId(), "Latest message");
+
+        assertThat(notificationRepository.findAllByRecipientIdOrderByCreatedAtDescIdDesc(recipient.getId()))
+                .containsExactly(legacyChatNotification);
+        mockMvc.perform(get("/api/notifications")
+                        .with(user(recipient.getUsername()).roles("USER")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(0));
+        mockMvc.perform(get("/api/notifications/unread-count")
+                        .with(user(recipient.getUsername()).roles("USER")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.unreadCount").value(0));
+
+        authenticateAs(recipient);
+        chatService.getChat(actor.getUsername());
+
+        verify(messagingTemplate, atLeastOnce()).convertAndSendToUser(
+                eq(recipient.getUsername()),
+                eq("/queue/chat-unread"),
+                any(ChatUnreadWsEventDto.class)
+        );
     }
 
     private User createUser(String username) {

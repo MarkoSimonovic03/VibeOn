@@ -5,6 +5,7 @@ import com.metropolitan.VibeOn.entity.Message;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.repository.query.Param;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -15,6 +16,29 @@ public interface MessageRepository extends JpaRepository<Message, Long> {
     List<Message> findByChatIdOrderByCreatedAtDesc(@Param("chatId") Long chatId);
 
     List<Message> findAllByChatIdAndUserIdNotAndReadFalse(Long chatId, Long userId);
+
+    @Query("""
+            SELECT COUNT(m)
+            FROM Message m
+            JOIN m.chat c
+            JOIN c.users participant
+            WHERE participant.id = :userId
+              AND m.user.id <> :userId
+              AND m.read = false
+            """)
+    long countUnreadMessagesForUser(@Param("userId") Long userId);
+
+    @Query("""
+            SELECT COUNT(m)
+            FROM Message m
+            WHERE m.chat.id = :chatId
+              AND m.user.id <> :userId
+              AND m.read = false
+            """)
+    long countUnreadMessagesForChatAndUser(
+            @Param("chatId") Long chatId,
+            @Param("userId") Long userId
+    );
 
     default List<SingleMessageDto> findMessagesByChatIdAsDto(Long chatId) {
         return findByChatIdOrderByCreatedAtDesc(chatId).stream()
