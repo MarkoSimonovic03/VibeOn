@@ -272,7 +272,7 @@ class CoreFunctionalityIntegrationTest {
                             request.setMethod("PATCH");
                             return request;
                         })
-                        .with(user("admin").roles("ADMIN")))
+                        .with(user("guest").roles("GUEST")))
                 .andExpect(status().isForbidden());
 
         assertThat(userRepository.findById(alice.getId()).orElseThrow().getName()).isEqualTo("alice");

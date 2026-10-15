@@ -1,0 +1,18 @@
+package com.metropolitan.VibeOn.entity;
+
+public enum ModerationTargetType {
+    POST,
+    MESSAGE,
+    COMMENT,
+    STORY,
+    USER_SUSPENSION,
+    FOLLOW_RELATIONSHIP,
+    AI_FLAG_REVIEW,
+    AI_MESSAGE_FLAG_REVIEW,
+    AI_COMMENT_FLAG_REVIEW,
+    AI_STORY_FLAG_REVIEW,
+    REPORT_DISMISSAL,
+    POST_RESTORATION,
+    POST_MENTION_REMOVAL,
+    COMMENT_MENTION_REMOVAL
+}

@@ -80,6 +80,9 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
         String username = jwtTokenProvider.getUsername(token);
         UserDetails userDetails = userDetailsService.loadUserByUsername(username);
+        if (!userDetails.isEnabled()) {
+            throw new BadCredentialsException("Account is temporarily suspended");
+        }
         accessor.setUser(new UsernamePasswordAuthenticationToken(
                 userDetails,
                 null,

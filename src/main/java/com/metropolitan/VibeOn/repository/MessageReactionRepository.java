@@ -12,4 +12,6 @@ public interface MessageReactionRepository extends JpaRepository<MessageReaction
 
     @EntityGraph(attributePaths = "user")
     List<MessageReaction> findAllByMessageIdOrderByIdAsc(Long messageId);
+
+    void deleteAllByMessageId(Long messageId);
 }

@@ -24,6 +24,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.context.ApplicationEventPublisher;
+import com.metropolitan.VibeOn.service.MessageCreatedForModerationEvent;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -42,6 +44,7 @@ public class ChatServiceImpl implements ChatService {
     private final UserLookupService userLookupService;
     private final PostAccessService postAccessService;
     private final SimpMessagingTemplate messagingTemplate;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Override
     @Transactional
@@ -59,6 +62,7 @@ public class ChatServiceImpl implements ChatService {
         Message savedMessage = messageRepository.save(message);
         chat.setLastMessage(savedMessage);
         publishUnreadUpdateToOtherParticipants(chat, currentUser);
+        eventPublisher.publishEvent(new MessageCreatedForModerationEvent(savedMessage.getId()));
 
         return toMessageDto(savedMessage);
     }

@@ -3,6 +3,7 @@ package com.metropolitan.VibeOn.controller;
 import com.metropolitan.VibeOn.exception.DuplicateReportException;
 import com.metropolitan.VibeOn.exception.PostCommentNotFoundException;
 import com.metropolitan.VibeOn.exception.ReportTargetNotFoundException;
+import com.metropolitan.VibeOn.exception.ModerationTargetNotFoundException;
 import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -56,6 +57,11 @@ public class ApiExceptionHandler {
 
     @ExceptionHandler(ReportTargetNotFoundException.class)
     public ResponseEntity<String> handleReportTargetNotFound(ReportTargetNotFoundException exception) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(exception.getMessage());
+    }
+
+    @ExceptionHandler(ModerationTargetNotFoundException.class)
+    public ResponseEntity<String> handleModerationTargetNotFound(ModerationTargetNotFoundException exception) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(exception.getMessage());
     }
 

@@ -17,6 +17,7 @@ import com.metropolitan.VibeOn.service.NotificationService;
 import com.metropolitan.VibeOn.service.PostAccessService;
 import com.metropolitan.VibeOn.service.PostService;
 import com.metropolitan.VibeOn.service.UserLookupService;
+import com.metropolitan.VibeOn.service.AiModerationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -47,6 +48,7 @@ public class PostServiceImpl implements PostService {
     private final MentionService mentionService;
     private final PostAccessService postAccessService;
     private final NotificationService notificationService;
+    private final AiModerationService aiModerationService;
 
     @Override
     @Transactional
@@ -78,6 +80,7 @@ public class PostServiceImpl implements PostService {
         post.setImageUrls(storedImages);
 
         Post savedPost = postRepository.save(post);
+        aiModerationService.analyzeAndFlag(savedPost, images);
         notificationService.notifyPostMentions(
                 currentUser,
                 savedPost,
@@ -142,6 +145,7 @@ public class PostServiceImpl implements PostService {
         var previousMentions = new HashSet<>(mentionService.findValidUsernames(post.getDescription()));
         post.setDescription(newDescription);
         postRepository.save(post);
+        aiModerationService.analyzeAndFlag(post, List.of());
         List<String> newMentions = mentionService.findValidUsernames(newDescription).stream()
                 .filter(username -> !previousMentions.contains(username))
                 .toList();

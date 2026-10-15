@@ -165,7 +165,7 @@ class NotificationFunctionalityIntegrationTest {
 
         mockMvc.perform(get("/api/notifications"))
                 .andExpect(status().isUnauthorized());
-        mockMvc.perform(get("/api/notifications").with(user("admin").roles("ADMIN")))
+        mockMvc.perform(get("/api/notifications").with(user("guest").roles("GUEST")))
                 .andExpect(status().isForbidden());
         mockMvc.perform(get("/api/notifications").with(user(actor.getUsername()).roles("USER")))
                 .andExpect(status().isOk())

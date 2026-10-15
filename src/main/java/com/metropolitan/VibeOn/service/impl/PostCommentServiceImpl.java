@@ -7,11 +7,13 @@ import com.metropolitan.VibeOn.entity.User;
 import com.metropolitan.VibeOn.exception.PostCommentNotFoundException;
 import com.metropolitan.VibeOn.repository.PostCommentRepository;
 import com.metropolitan.VibeOn.repository.PostRepository;
+import com.metropolitan.VibeOn.repository.AiModerationFlagRepository;
 import com.metropolitan.VibeOn.service.PostCommentService;
 import com.metropolitan.VibeOn.service.MentionService;
 import com.metropolitan.VibeOn.service.NotificationService;
 import com.metropolitan.VibeOn.service.PostAccessService;
 import com.metropolitan.VibeOn.service.UserLookupService;
+import com.metropolitan.VibeOn.service.AiModerationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -30,6 +32,8 @@ public class PostCommentServiceImpl implements PostCommentService {
     private final MentionService mentionService;
     private final PostAccessService postAccessService;
     private final NotificationService notificationService;
+    private final AiModerationService aiModerationService;
+    private final AiModerationFlagRepository aiModerationFlagRepository;
 
     @Override
     @Transactional(readOnly = true)
@@ -56,6 +60,7 @@ public class PostCommentServiceImpl implements PostCommentService {
         comment.setCreatedAt(LocalDateTime.now());
 
         PostComment savedComment = postCommentRepository.save(comment);
+        aiModerationService.analyzeAndFlag(savedComment);
         notificationService.notifyPostComment(currentUser, post, savedComment.getContent());
         notificationService.notifyCommentMentions(
                 currentUser,
@@ -80,6 +85,7 @@ public class PostCommentServiceImpl implements PostCommentService {
             throw new AccessDeniedException("You cannot delete another user's comment.");
         }
 
+        aiModerationFlagRepository.findByCommentId(commentId).ifPresent(aiModerationFlagRepository::delete);
         postCommentRepository.delete(comment);
     }
 

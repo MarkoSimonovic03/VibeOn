@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface MessageRepository extends JpaRepository<Message, Long> {
@@ -16,6 +17,8 @@ public interface MessageRepository extends JpaRepository<Message, Long> {
     List<Message> findByChatIdOrderByCreatedAtDesc(@Param("chatId") Long chatId);
 
     List<Message> findAllByChatIdAndUserIdNotAndReadFalse(Long chatId, Long userId);
+
+    Optional<Message> findFirstByChatIdAndIdNotOrderByCreatedAtDesc(Long chatId, Long excludedMessageId);
 
     @Query("""
             SELECT COUNT(m)

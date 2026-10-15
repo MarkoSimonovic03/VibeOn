@@ -41,6 +41,12 @@ public class Report {
     @Column(name = "description", length = 1000)
     private String description;
 
+    @Column(name = "affected_user_id")
+    private Long affectedUserId;
+
+    @Column(name = "affected_username")
+    private String affectedUsername;
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 

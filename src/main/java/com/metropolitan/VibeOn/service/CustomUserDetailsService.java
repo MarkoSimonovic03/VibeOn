@@ -11,6 +11,7 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
 import java.util.Set;
+import java.time.LocalDateTime;
 import java.util.stream.Collectors;
 
 @Service
@@ -29,10 +30,13 @@ public class CustomUserDetailsService implements UserDetailsService {
                 .map((role) -> new SimpleGrantedAuthority(role.getName()))
                 .collect(Collectors.toSet());
 
-        return new org.springframework.security.core.userdetails.User(
-                username,
-                user.getPassword(),
-                authorities
-        );
+        boolean suspended = user.getSuspendedUntil() != null
+                && user.getSuspendedUntil().isAfter(LocalDateTime.now());
+        return org.springframework.security.core.userdetails.User.builder()
+                .username(username)
+                .password(user.getPassword())
+                .authorities(authorities)
+                .disabled(suspended)
+                .build();
     }
 }

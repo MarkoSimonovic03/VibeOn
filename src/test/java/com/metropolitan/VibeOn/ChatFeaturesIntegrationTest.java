@@ -184,7 +184,7 @@ class ChatFeaturesIntegrationTest {
                 .andExpect(status().isUnauthorized());
         mockMvc.perform(get("/api/chats/unread-count"))
                 .andExpect(status().isUnauthorized());
-        react(firstChat.getId(), messageId, "admin", "ADMIN", "👍")
+        react(firstChat.getId(), messageId, "guest", "GUEST", "👍")
                 .andExpect(status().isForbidden());
         react(secondChat.getId(), messageId, alice, "👍")
                 .andExpect(status().isNotFound());

@@ -143,7 +143,7 @@ class PostSharingFunctionalityIntegrationTest {
                 .andExpect(status().isUnauthorized());
 
         mockMvc.perform(post("/api/chats/{chatId}/posts/{postId}", chat.getId(), post.getId())
-                        .with(user("admin").roles("ADMIN")))
+                        .with(user("guest").roles("GUEST")))
                 .andExpect(status().isForbidden());
     }
 

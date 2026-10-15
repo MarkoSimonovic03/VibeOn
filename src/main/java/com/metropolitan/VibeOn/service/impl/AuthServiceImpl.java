@@ -85,7 +85,11 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public HeaderUserDto getHeaderUserInfo() {
         User currentUser = userLookupService.getCurrentUser();
-        return new HeaderUserDto(currentUser.getUsername(), currentUser.getProfileImageUrl());
+        return new HeaderUserDto(
+                currentUser.getUsername(),
+                currentUser.getProfileImageUrl(),
+                currentUser.getRoles().stream().map(Role::getName).collect(java.util.stream.Collectors.toSet())
+        );
     }
 
     @Override
@@ -100,7 +104,8 @@ public class AuthServiceImpl implements AuthService {
                 .existsByRequesterIdAndTargetId(currentUser.getId(), otherUser.getId());
         boolean canViewPosts = currentUser.getId().equals(otherUser.getId())
                 || !otherUser.isPrivate()
-                || isFollowing;
+                || isFollowing
+                || canModerate(currentUser);
 
         return ProfileDto.fromUser(
                 otherUser,
@@ -109,6 +114,12 @@ public class AuthServiceImpl implements AuthService {
                 canViewPosts,
                 followRepository.countByFolloweeId(otherUser.getId()),
                 followRepository.countByFollowerId(otherUser.getId())
+        );
+    }
+
+    private boolean canModerate(User user) {
+        return user.getRoles().stream().anyMatch(role ->
+                role.getName().equals("ROLE_MODERATOR") || role.getName().equals("ROLE_ADMIN")
         );
     }
 

@@ -8,6 +8,7 @@ import com.metropolitan.VibeOn.service.ImageStorageService;
 import com.metropolitan.VibeOn.service.PostAccessService;
 import com.metropolitan.VibeOn.service.StoryService;
 import com.metropolitan.VibeOn.service.UserLookupService;
+import com.metropolitan.VibeOn.service.AiModerationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
@@ -27,6 +28,7 @@ public class StoryServiceImpl implements StoryService {
     private final UserLookupService userLookupService;
     private final ImageStorageService imageStorageService;
     private final PostAccessService postAccessService;
+    private final AiModerationService aiModerationService;
 
     @Override
     @Transactional
@@ -41,7 +43,9 @@ public class StoryServiceImpl implements StoryService {
         story.setExpiresAt(createdAt.plusHours(STORY_LIFETIME_HOURS));
         story.setUser(currentUser);
 
-        return StoryDto.fromStory(storyRepository.save(story), currentUser.getId());
+        Story savedStory = storyRepository.save(story);
+        aiModerationService.analyzeAndFlag(savedStory, image);
+        return StoryDto.fromStory(savedStory, currentUser.getId());
     }
 
     @Override

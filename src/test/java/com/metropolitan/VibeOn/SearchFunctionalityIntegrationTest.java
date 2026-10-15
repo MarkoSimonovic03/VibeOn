@@ -118,7 +118,7 @@ class SearchFunctionalityIntegrationTest {
 
         mockMvc.perform(get("/api/search/users")
                         .param("query", "alice")
-                        .with(user("admin").roles("ADMIN")))
+                        .with(user("guest").roles("GUEST")))
                 .andExpect(status().isForbidden());
 
         mockMvc.perform(get("/api/search/users")

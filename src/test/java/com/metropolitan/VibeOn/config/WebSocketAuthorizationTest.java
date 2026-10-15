@@ -13,6 +13,7 @@ import org.springframework.messaging.simp.config.ChannelRegistration;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetailsService;
 
@@ -63,6 +64,18 @@ class WebSocketAuthorizationTest {
                 stompMessage(StompCommand.CONNECT, null, null, null),
                 null
         )).isInstanceOf(AuthenticationCredentialsNotFoundException.class);
+    }
+
+    @Test
+    void suspendedUserCannotConnectWithAnExistingToken() {
+        when(jwtTokenProvider.validateToken("valid-token")).thenReturn(true);
+        when(jwtTokenProvider.getUsername("valid-token")).thenReturn("alice");
+        when(userDetailsService.loadUserByUsername("alice"))
+                .thenReturn(User.withUsername("alice").password("password").roles("USER").disabled(true).build());
+
+        assertThatThrownBy(() -> interceptor.preSend(
+                stompMessage(StompCommand.CONNECT, null, null, "Bearer valid-token"), null
+        )).isInstanceOf(BadCredentialsException.class);
     }
 
     @Test

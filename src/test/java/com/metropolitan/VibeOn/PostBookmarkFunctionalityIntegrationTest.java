@@ -126,7 +126,7 @@ class PostBookmarkFunctionalityIntegrationTest {
         mockMvc.perform(post("/api/posts/{id}/bookmarks", post.getId()))
                 .andExpect(status().isUnauthorized());
         mockMvc.perform(post("/api/posts/{id}/bookmarks", post.getId())
-                        .with(user("admin").roles("ADMIN")))
+                        .with(user("guest").roles("GUEST")))
                 .andExpect(status().isForbidden());
         mockMvc.perform(post("/api/posts/{id}/bookmarks", 999999)
                         .with(user(user.getUsername()).roles("USER")))

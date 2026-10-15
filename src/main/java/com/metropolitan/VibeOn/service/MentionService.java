@@ -34,4 +34,25 @@ public class MentionService {
                 .filter(userRepository::existsByUsername)
                 .toList();
     }
+
+    public String removeMentionLinks(String text) {
+        if (text == null || text.isBlank()) {
+            return text;
+        }
+        return MENTION_PATTERN.matcher(text).replaceAll("$1");
+    }
+
+    public String removeMentionLinks(String text, String username) {
+        if (text == null || text.isBlank() || username == null || username.isBlank()) {
+            return text;
+        }
+        Matcher matcher = MENTION_PATTERN.matcher(text);
+        StringBuffer result = new StringBuffer();
+        while (matcher.find()) {
+            String replacement = matcher.group(1).equals(username) ? matcher.group(1) : matcher.group();
+            matcher.appendReplacement(result, Matcher.quoteReplacement(replacement));
+        }
+        matcher.appendTail(result);
+        return result.toString();
+    }
 }

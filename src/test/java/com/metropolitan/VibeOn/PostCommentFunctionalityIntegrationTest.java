@@ -158,7 +158,7 @@ class PostCommentFunctionalityIntegrationTest {
         mockMvc.perform(get("/api/posts/{postId}/comments", post.getId()))
                 .andExpect(status().isUnauthorized());
         mockMvc.perform(get("/api/posts/{postId}/comments", post.getId())
-                        .with(user("admin").roles("ADMIN")))
+                        .with(user("guest").roles("GUEST")))
                 .andExpect(status().isForbidden());
 
         post.setDeleted(true);

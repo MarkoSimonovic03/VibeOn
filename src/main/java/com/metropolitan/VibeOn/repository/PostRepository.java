@@ -4,6 +4,7 @@ import com.metropolitan.VibeOn.dto.SinglePostDto;
 import com.metropolitan.VibeOn.entity.Post;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
@@ -12,6 +13,13 @@ import java.util.Optional;
 
 @Repository
 public interface PostRepository extends JpaRepository<Post, Long> {
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query(value = "UPDATE posts SET is_deleted = false, deleted_at = NULL WHERE id = :id AND is_deleted = true", nativeQuery = true)
+    int restoreDeletedById(@Param("id") Long id);
+
+    @Query(value = "SELECT COUNT(*) FROM posts WHERE id = :id AND is_deleted = true", nativeQuery = true)
+    long countDeletedById(@Param("id") Long id);
+
     @Query("""
                 SELECT new com.metropolitan.VibeOn.dto.SinglePostDto(
                     p.id,

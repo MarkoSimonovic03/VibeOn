@@ -120,7 +120,7 @@ class ExploreFunctionalityIntegrationTest {
     }
 
     @Test
-    void exploreRequiresRoleUser() throws Exception {
+    void exploreRequiresUserPermissionsAndAllowsInheritedRoles() throws Exception {
         User user = createUser("alice");
         createPost(createUser("author"), "Recommendation", LocalDateTime.now());
 
@@ -128,8 +128,16 @@ class ExploreFunctionalityIntegrationTest {
                 .andExpect(status().isUnauthorized());
 
         mockMvc.perform(get("/api/posts/explore")
-                        .with(user("admin").roles("ADMIN")))
+                        .with(user("guest").roles("GUEST")))
                 .andExpect(status().isForbidden());
+
+        mockMvc.perform(get("/api/posts/explore")
+                        .with(user(user.getUsername()).roles("MODERATOR")))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(get("/api/posts/explore")
+                        .with(user(user.getUsername()).roles("ADMIN")))
+                .andExpect(status().isOk());
 
         mockMvc.perform(get("/api/posts/explore")
                         .with(user(user.getUsername()).roles("USER")))

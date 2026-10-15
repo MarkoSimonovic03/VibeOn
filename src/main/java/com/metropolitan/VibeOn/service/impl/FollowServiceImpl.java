@@ -160,7 +160,10 @@ public class FollowServiceImpl implements FollowService {
         boolean approvedFollower = followRepository.existsByFollowerIdAndFolloweeId(
                 currentUser.getId(), profileOwner.getId()
         );
-        if (profileOwner.isPrivate() && !isOwner && !approvedFollower) {
+        boolean moderator = currentUser.getRoles().stream().anyMatch(role ->
+                role.getName().equals("ROLE_MODERATOR") || role.getName().equals("ROLE_ADMIN")
+        );
+        if (profileOwner.isPrivate() && !isOwner && !approvedFollower && !moderator) {
             throw new AccessDeniedException("Followers and following are private.");
         }
     }

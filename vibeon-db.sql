@@ -197,7 +197,8 @@ CREATE TABLE `roles` (
 
 INSERT INTO `roles` (`id`, `name`) VALUES
 (1, 'ROLE_ADMIN'),
-(2, 'ROLE_USER');
+(2, 'ROLE_USER'),
+(3, 'ROLE_MODERATOR');
 
 -- --------------------------------------------------------
 
@@ -343,7 +344,7 @@ ALTER TABLE `posts`
 -- AUTO_INCREMENT for table `roles`
 --
 ALTER TABLE `roles`
-  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT for table `users`

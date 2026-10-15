@@ -3,5 +3,7 @@ package com.metropolitan.VibeOn.entity;
 public enum ReportTargetType {
     POST,
     MESSAGE,
-    USER
+    USER,
+    COMMENT,
+    STORY
 }

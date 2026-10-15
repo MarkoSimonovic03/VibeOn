@@ -16,6 +16,8 @@ public class ReportResponseDto {
     private Long targetId;
     private ReportReason reason;
     private String description;
+    private Long affectedUserId;
+    private String affectedUsername;
     private LocalDateTime createdAt;
 
     public static ReportResponseDto fromReport(Report report) {
@@ -25,6 +27,8 @@ public class ReportResponseDto {
                 report.getTargetId(),
                 report.getReason(),
                 report.getDescription(),
+                report.getAffectedUserId(),
+                report.getAffectedUsername(),
                 report.getCreatedAt()
         );
     }

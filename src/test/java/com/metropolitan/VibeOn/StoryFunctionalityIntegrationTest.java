@@ -185,12 +185,12 @@ class StoryFunctionalityIntegrationTest {
 
         mockMvc.perform(get("/api/stories"))
                 .andExpect(status().isUnauthorized());
-        mockMvc.perform(get("/api/stories").with(user("admin").roles("ADMIN")))
+        mockMvc.perform(get("/api/stories").with(user("guest").roles("GUEST")))
                 .andExpect(status().isForbidden());
 
         mockMvc.perform(multipart("/api/stories")
                         .file(imagePart())
-                        .with(user("admin").roles("ADMIN")))
+                        .with(user("guest").roles("GUEST")))
                 .andExpect(status().isForbidden());
 
         mockMvc.perform(get("/api/stories").with(user(alice.getUsername()).roles("USER")))
